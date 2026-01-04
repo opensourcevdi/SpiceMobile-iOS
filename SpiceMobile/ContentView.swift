@@ -8,79 +8,71 @@
 import SwiftUI
 import CoreData
 
+// MARK: - ContentView
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    @State private var isLoading: Bool = true
+    @State private var shouldForceLandscape: Bool = false
+    
+    
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
-                    }
+        GeometryReader { geo in
+            let size = geo.size
+            
+            // Feste Desktop-Zielauflösung
+            let targetWidth: CGFloat = 1000
+            let targetHeight: CGFloat = 562.5 // 16:9
+            
+            // Nach Rotation: Desktop-Höhe (targetHeight) wird zur Breite, Desktop-Breite (targetWidth) wird zur Höhe
+            let horizontalScale = size.width / targetHeight
+            let verticalScale = size.height / targetWidth
+            let scale = shouldForceLandscape ? min(horizontalScale, verticalScale) : 1
+            
+            ZStack {
+                WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape)
+                    .background(Color.clear)
+                    .opacity(isLoading ? 0 : 1)
+                // Nur im Landscape-Force-Modus in Desktop-Auflösung rendern
+                    .frame(width: shouldForceLandscape ? targetWidth : nil,
+                           height: shouldForceLandscape ? targetHeight : nil)
+                    .rotationEffect(.degrees(shouldForceLandscape ? 90 : 0))
+                    .scaleEffect(shouldForceLandscape ? scale : 1, anchor: .center)
+                    .frame(width: size.width, height: size.height)
+                    .position(x: size.width / 2, y: size.height / 2)
+                
+                
+                if isLoading {
+                    
+                    // Simple loading overlay
+                    Color.black.opacity(0.15).ignoresSafeArea()
+                    ProgressView("Loading…")
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .padding(24)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .transition(.opacity)
+                    
                 }
-                .onDelete(perform: deleteItems)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
+
         }
+        
     }
+    
+}
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
 
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+private struct ConditionalPosition: ViewModifier {
+    let centerWhen: Bool
+    let size: CGSize
+    func body(content: Content) -> some View {
+        if centerWhen {
+            content.position(x: size.width / 2, y: size.height / 2)
+        } else {
+            content
         }
     }
 }
-
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
 
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    ContentView()
 }
+
