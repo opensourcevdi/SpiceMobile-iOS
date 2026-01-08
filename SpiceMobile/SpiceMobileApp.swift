@@ -16,7 +16,7 @@ struct SpiceMobileApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .preferredColorScheme(.light)
+                .preferredColorScheme(.dark)
 
         }
     }

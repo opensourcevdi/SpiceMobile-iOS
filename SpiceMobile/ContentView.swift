@@ -6,73 +6,157 @@
 //
 
 import SwiftUI
-import CoreData
 
 // MARK: - ContentView
 struct ContentView: View {
     @State private var isLoading: Bool = true
     @State private var shouldForceLandscape: Bool = false
+    @State private var cumulativeScale: CGFloat = 1.0
+    @State private var transientScale: CGFloat = 1.0
+    @State private var isPinching: Bool = false
     
+    @State private var overlayExpanded: Bool = false
+    @FocusState private var keyboardFocus: Bool
+    @State private var hiddenInput: String = ""
     
+    @State private var currentURL: URL? = nil
+    @State private var requestedURL: URL? = nil
+    private var isOnAuthURL: Bool {
+        guard let urlString = currentURL?.absoluteString else { return false }
+        return urlString.hasPrefix("https://auth.dev.escience.uni-freiburg.de/realms/osvdi/protocol/openid-connect/")
+    }
+
     var body: some View {
-        GeometryReader { geo in
-            let size = geo.size
-            
-            // Feste Desktop-Zielauflösung
-            let targetWidth: CGFloat = 1000
-            let targetHeight: CGFloat = 562.5 // 16:9
-            
-            // Nach Rotation: Desktop-Höhe (targetHeight) wird zur Breite, Desktop-Breite (targetWidth) wird zur Höhe
-            let horizontalScale = size.width / targetHeight
-            let verticalScale = size.height / targetWidth
-            let scale = shouldForceLandscape ? min(horizontalScale, verticalScale) : 1
-            
+        
+        ZStack {
+            Color.black.ignoresSafeArea()
             ZStack {
-                WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape)
+                WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL)
                     .background(Color.clear)
                     .opacity(isLoading ? 0 : 1)
-                // Nur im Landscape-Force-Modus in Desktop-Auflösung rendern
-                    .frame(width: shouldForceLandscape ? targetWidth : nil,
-                           height: shouldForceLandscape ? targetHeight : nil)
-                    .rotationEffect(.degrees(shouldForceLandscape ? 90 : 0))
-                    .scaleEffect(shouldForceLandscape ? scale : 1, anchor: .center)
-                    .frame(width: size.width, height: size.height)
-                    .position(x: size.width / 2, y: size.height / 2)
-                
-                
-                if isLoading {
+                    .allowsHitTesting(!isPinching)
+                    .clipped()
+                    .highPriorityGesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                withTransaction(Transaction(animation: nil)) {
+                                    if !isPinching { isPinching = true }
+                                    let proposed = value * cumulativeScale
+                                    transientScale = min(max(proposed, 0.5), 1.0) / cumulativeScale
+                                }
+                            }
+                            .onEnded { value in
+                                withTransaction(Transaction(animation: nil)) {
+                                    let proposed = value * cumulativeScale
+                                    cumulativeScale = min(max(proposed, 0.5), 1.0)
+                                    transientScale = 1.0
+                                    isPinching = false
+                                }
+                            }
+                    )
+            }
+            .scaleEffect((cumulativeScale * transientScale), anchor: .center)
+
+
+            // Hidden TextField to trigger keyboard on demand
+            TextField("", text: $hiddenInput)
+                .focused($keyboardFocus)
+                .keyboardType(.alphabet)
+                .autocorrectionDisabled()
+                .frame(width: 0, height: 0)
+                .opacity(0.01)
+                .disabled(false)
+                .allowsHitTesting(false)
+
+            if !isOnAuthURL {
+                // Overlay controls (top-right)
+                VStack {
                     
-                    // Simple loading overlay
-                    Color.black.opacity(0.15).ignoresSafeArea()
-                    ProgressView("Loading…")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding(24)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .transition(.opacity)
                     
+                    if shouldForceLandscape {
+                        HStack {
+                            
+                            HStack(spacing: 8) {
+                                
+                                
+                                Button {
+                                    // Navigate to home when arrow is pressed
+                                    requestedURL = URL(string: "https://demo.osvdi.uni-freiburg.de")
+                                } label: {
+                                    Image(systemName: "chevron.backward.circle.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(.primary)
+                                        .symbolRenderingMode(.hierarchical)
+                                        .padding(10)
+                                        .background(.ultraThinMaterial, in: Capsule())
+                                }
+                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                            }
+                            
+                            
+                            .padding(.top, 24)
+                            .padding(.leading, 24)
+                            
+                            Spacer()
+                            HStack(spacing: 8) {
+                                
+                                
+                                if overlayExpanded {
+                                    // Keyboard button
+                                    Button {
+                                        if keyboardFocus {keyboardFocus = false} else {keyboardFocus = true}
+                                    } label: {
+                                        Image(systemName: "keyboard.fill")
+                                            .font(.system(size: 22, weight: .semibold))
+                                            .foregroundStyle(.primary)
+                                            .symbolRenderingMode(.hierarchical)
+                                            .padding(10)
+                                            .background(.ultraThinMaterial, in: Capsule())
+                                    }
+                                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                                }
+                                
+                                
+                                // Arrow toggle button
+                                Button {
+                                    
+                                    withAnimation(.snappy) {
+                                        overlayExpanded.toggle()
+                                        if !overlayExpanded { keyboardFocus = false }
+                                    }
+                                } label: {
+                                    Image(systemName: overlayExpanded ? "minus.circle.fill" : "plus.circle.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(.primary)
+                                        .symbolRenderingMode(.hierarchical)
+                                        .padding(10)
+                                        .background(.ultraThinMaterial, in: Capsule())
+                                }
+                                
+                            }
+                        }
+                        .padding(.top, 24)
+                        .padding(.trailing, 24)
+                    }
+                    Spacer()
                 }
+                .allowsHitTesting(true)
             }
 
+            if isLoading {
+                ProgressView("Loading…")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .padding(24)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .transition(.opacity)
+            }
         }
-        
+
+        .ignoresSafeArea()
     }
     
-}
-
-
-private struct ConditionalPosition: ViewModifier {
-    let centerWhen: Bool
-    let size: CGSize
-    func body(content: Content) -> some View {
-        if centerWhen {
-            content.position(x: size.width / 2, y: size.height / 2)
-        } else {
-            content
-        }
-    }
 }
 
 #Preview {
     ContentView()
 }
-
