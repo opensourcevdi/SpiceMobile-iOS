@@ -19,7 +19,7 @@ struct WebView: UIViewRepresentable {
     @Binding var shouldForceLandscape: Bool
     @Binding var currentURL: URL?
     @Binding var requestedURL: URL?
-    @Binding var requestKeyboardFocus: Bool
+    @Binding var typingBuffer: String
     var pageZoom: CGFloat = 0.62
     var cursorSpeed: Double = 2.0
     
@@ -34,6 +34,7 @@ struct WebView: UIViewRepresentable {
          shouldForceLandscape: Binding<Bool>,
          currentURL: Binding<URL?>,
          requestedURL: Binding<URL?>,
+         typingBuffer: Binding<String>,
          pageZoom: CGFloat = 0.62,
          cursorSpeed: Double = 2.0,
          pageReadyPredicateJS: String? = nil,
@@ -44,12 +45,13 @@ struct WebView: UIViewRepresentable {
         self._shouldForceLandscape = shouldForceLandscape
         self._currentURL = currentURL
         self._requestedURL = requestedURL
-        self._requestKeyboardFocus = .constant(false)
+        self._typingBuffer = typingBuffer
         self.pageZoom = pageZoom
         self.cursorSpeed = cursorSpeed
         self.pageReadyPredicateJS = pageReadyPredicateJS
         self.pageReadyTimeout = pageReadyTimeout
         self.pageReadyInterval = pageReadyInterval
+        
     }
 
     // Designated initializer including requestKeyboardFocus binding
@@ -59,6 +61,7 @@ struct WebView: UIViewRepresentable {
          currentURL: Binding<URL?>,
          requestedURL: Binding<URL?>,
          requestKeyboardFocus: Binding<Bool>,
+         typingBuffer: Binding<String>,
          pageZoom: CGFloat = 0.62,
          cursorSpeed: Double = 2.0,
          pageReadyPredicateJS: String? = nil,
@@ -69,7 +72,7 @@ struct WebView: UIViewRepresentable {
         self._shouldForceLandscape = shouldForceLandscape
         self._currentURL = currentURL
         self._requestedURL = requestedURL
-        self._requestKeyboardFocus = requestKeyboardFocus
+        self._typingBuffer = typingBuffer
         self.pageZoom = pageZoom
         self.cursorSpeed = cursorSpeed
         self.pageReadyPredicateJS = pageReadyPredicateJS
@@ -78,6 +81,7 @@ struct WebView: UIViewRepresentable {
     }
 
     func base64ForSFSymbol(named name: String, pointSize: CGFloat = 10, weight: UIImage.SymbolWeight = .regular) -> String? {
+
         let config = UIImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
         if let image = UIImage(systemName: name, withConfiguration: config),
            let png = image.pngData() {
@@ -93,6 +97,7 @@ struct WebView: UIViewRepresentable {
     private func makeConfiguredWebView(context: Context) -> WKWebView {
         let contentController = WKUserContentController()
         contentController.add(context.coordinator, name: "haptics")
+
 
         let disableSelectionScript = """
 var css = "* { -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; -webkit-user-drag: none !important; } img, a, video, canvas { -webkit-user-drag: none !important; user-drag: none !important; }";
@@ -177,7 +182,7 @@ observer.observe(document.documentElement || document.body, { childList: true, s
       configurable: true,
       enumerable: false,
       writable: true,
-      value: 0.35
+      value: 0.6
     });
   }
   
@@ -289,6 +294,15 @@ observer.observe(document.documentElement || document.body, { childList: true, s
     dot.style.top = cursorY + 'px';
     dot.style.opacity = '1';
     hasCursorPosition = true;
+
+    // Immediately send the updated cursor position to the native/web bridge (no delay)
+    try {
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cursor) {
+        window.webkit.messageHandlers.cursor.postMessage({ x: cursorX, y: cursorY });
+      } else if (typeof window.sendMousePosition === 'function') {
+        window.sendMousePosition(cursorX, cursorY);
+      }
+    } catch (_) {}
   }
 
 
@@ -495,6 +509,8 @@ observer.observe(document.documentElement || document.body, { childList: true, s
 
     func makeUIView(context: Context) -> WKWebView {
         let webView = makeConfiguredWebView(context: context)
+        
+        context.coordinator.webView = webView
 
         // Optional: Scroll und Zoom konfigurieren
         webView.scrollView.bounces = false
@@ -512,8 +528,6 @@ observer.observe(document.documentElement || document.body, { childList: true, s
         webView.allowsBackForwardNavigationGestures = false
 
         webView.uiDelegate = context.coordinator
-        
-        // no additional setup needed here for keyboard; handled in updateUIView via JS
         
         webView.gestureRecognizers?.forEach { recognizer in
             if let longPress = recognizer as? UILongPressGestureRecognizer {
@@ -542,44 +556,16 @@ observer.observe(document.documentElement || document.body, { childList: true, s
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        // Handle keyboard focus request without requiring a navigation
-        if requestKeyboardFocus {
-            // Create or focus a hidden input/contentEditable element inside the page and focus it
-            let js = """
-            (function(){
-              try {
-                var el = document.getElementById('__native_keyboard_bridge_input');
-                if (!el) {
-                  el = document.createElement('input');
-                  el.type = 'text';
-                  el.id = '__native_keyboard_bridge_input';
-                  el.autocapitalize = 'none';
-                  el.autocomplete = 'off';
-                  el.autocorrect = 'off';
-                  el.style.position = 'fixed';
-                  el.style.opacity = '0';
-                  el.style.pointerEvents = 'none';
-                  el.style.zIndex = '2147483647';
-                  el.style.left = '0px';
-                  el.style.top = '0px';
-                  document.documentElement.appendChild(el);
-                }
-                el.focus({ preventScroll: true });
-                // Also try focusing body/contentEditable as a fallback
-                if (document.activeElement !== el) {
-                  if (document.body) { document.body.focus({ preventScroll: true }); }
-                }
-                return true;
-              } catch(e) { return false; }
-            })();
-            """
-            uiView.evaluateJavaScript(js) { _, _ in }
-            DispatchQueue.main.async {
-                // reset the flag so it can be triggered again later
-                var mutable = self
-                mutable.requestKeyboardFocus = false
-            }
+        // Event-based propagation of typingBuffer changes
+        let oldValue = context.coordinator.lastLoggedTypingBuffer
+        let newValue = self.typingBuffer
+        if oldValue != newValue {
+            context.coordinator.processTypingBufferChange(old: oldValue, new: newValue)
+            context.coordinator.lastLoggedTypingBuffer = newValue
         }
+        
+        // Handle keyboard focus request without requiring a navigation
+        
 
         // Proceed with navigation request if any
         guard let url = requestedURL else { return }
@@ -619,9 +605,100 @@ observer.observe(document.documentElement || document.body, { childList: true, s
 
     class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: WebView
+        
+        weak var webView: WKWebView?
+        
+        var lastLoggedTypingBuffer: String = ""
 
         init(parent: WebView) {
             self.parent = parent
+            self.lastLoggedTypingBuffer = parent.typingBuffer
+            super.init()
+        }
+        
+        func processTypingBufferChange(old: String, new current: String) {
+            guard let webView = self.webView else { return }
+            // Determine if a single character was added or removed
+            if current.count > old.count, let lastChar = current.last {
+                let ch = String(lastChar)
+                let escaped = ch
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
+                    .replacingOccurrences(of: "\n", with: "\\n")
+                    .replacingOccurrences(of: "\r", with: "\\r")
+                let js = """
+                (function(){
+                  function findSpiceTarget(){
+                    var canvas = document.querySelector('canvas');
+                    if (canvas) return canvas;
+                    var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
+                    return el || document.body;
+                  }
+                  function focusTarget(el){
+                    try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
+                    try { el.focus(); } catch(_) {}
+                  }
+                  function dispatchKey(el, type, key, code, keyCode){
+                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
+                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
+                    try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    el.dispatchEvent(evt);
+                  }
+                  function sendViaSpiceAPIChar(ch){
+                    try { if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendChar === 'function') { window.SpiceKeyboard.sendChar(ch); return true; } } catch(_) {}
+                    try { if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') { window.rfb._keyboard.keyPress(ch); return true; } } catch(_) {}
+                    return false;
+                  }
+                  var target = findSpiceTarget();
+                  focusTarget(target);
+                  var ch = \"\(escaped)\";
+                  var code = (ch && ch.length === 1) ? ('Key' + ch.toUpperCase()) : '';
+                  var keyCode = (ch && ch.length === 1) ? ch.charCodeAt(0) : 0;
+                  dispatchKey(target, 'keydown', ch, code, keyCode);
+                  dispatchKey(target, 'keypress', ch, code, keyCode);
+                  dispatchKey(target, 'keyup', ch, code, keyCode);
+                  sendViaSpiceAPIChar(ch);
+                })();
+                """
+                webView.evaluateJavaScript(js, completionHandler: nil)
+            } else if current.count < old.count {
+                let js = """
+                (function(){
+                  function findSpiceTarget(){
+                    var canvas = document.querySelector('canvas');
+                    if (canvas) return canvas;
+                    var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
+                    return el || document.body;
+                  }
+                  function focusTarget(el){
+                    try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
+                    try { el.focus(); } catch(_) {}
+                  }
+                  function dispatchKey(el, type, key, code, keyCode){
+                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
+                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
+                    try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    el.dispatchEvent(evt);
+                  }
+                  function sendViaSpiceAPIKey(key){
+                    try { if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKey === 'function') { window.SpiceKeyboard.sendKey(key); return true; } } catch(_) {}
+                    try { if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') { window.rfb._keyboard.keyPress(key); return true; } } catch(_) {}
+                    return false;
+                  }
+                  var target = findSpiceTarget();
+                  focusTarget(target);
+                  var key = 'Backspace';
+                  var code = 'Backspace';
+                  var keyCode = 8;
+                  dispatchKey(target, 'keydown', key, code, keyCode);
+                  dispatchKey(target, 'keyup', key, code, keyCode);
+                  sendViaSpiceAPIKey(key);
+                })();
+                """
+                webView.evaluateJavaScript(js, completionHandler: nil)
+            }
         }
 
         func webView(_ webView: WKWebView,
@@ -684,7 +761,7 @@ observer.observe(document.documentElement || document.body, { childList: true, s
                 } catch {
                     webView.evaluateJavaScript("window.touchMouseCursorSpeed = 1.0;") { _, _ in }
                 }
-                webView.evaluateJavaScript("window.touchMouseLerp = 0.35;") { _, _ in }
+                webView.evaluateJavaScript("window.touchMouseLerp = 0.6;") { _, _ in }
             } else {
                 webView.evaluateJavaScript("window.enableTouchMouseBridge = false;") { _, _ in }
                 webView.evaluateJavaScript("window.touchMousePageZoom = 1.0;") { _, _ in }
@@ -746,8 +823,9 @@ observer.observe(document.documentElement || document.body, { childList: true, s
         @State private var currentURL: URL? = nil
         @State private var requestedURL: URL? = nil
         @State private var requestKeyboardFocus: Bool = false
+        @State private var typingBuffer: String = ""
         var body: some View {
-            WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, requestKeyboardFocus: $requestKeyboardFocus, pageZoom: 0.95)
+            WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, requestKeyboardFocus: $requestKeyboardFocus, typingBuffer: $typingBuffer, pageZoom: 0.95)
                 .ignoresSafeArea()
         }
     }

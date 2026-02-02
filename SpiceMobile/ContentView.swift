@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var overlayExpanded: Bool = false
     @FocusState private var keyboardFocus: Bool
     @State private var hiddenInput: String = ""
+    @State private var typingBuffer: String = ""
     
     @State private var currentURL: URL? = nil
     @State private var requestedURL: URL? = nil
@@ -31,7 +32,7 @@ struct ContentView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             ZStack {
-                WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL)
+                WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer)
                     .background(Color.clear)
                     .opacity(isLoading ? 0 : 1)
                     .allowsHitTesting(!isPinching)
@@ -53,22 +54,28 @@ struct ContentView: View {
                                     isPinching = false
                                 }
                             }
+
                     )
+                
             }
+
             .scaleEffect((cumulativeScale * transientScale), anchor: .center)
 
 
             // Hidden TextField to trigger keyboard on demand
-            TextField("", text: $hiddenInput)
+            TextField("", text: Binding(get: { "" }, set: { newValue in typingBuffer.append(contentsOf: newValue) }))
                 .focused($keyboardFocus)
-                .keyboardType(.alphabet)
+                .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .frame(width: 0, height: 0)
                 .opacity(0.01)
                 .disabled(false)
                 .allowsHitTesting(false)
+                .onChange(of: typingBuffer) { newValue in
+                    print("typingBuffer changed:", newValue)
+                }
 
-            if !isOnAuthURL {
+            if !isOnAuthURL { 
                 // Overlay controls (top-right)
                 VStack {
                     
@@ -82,6 +89,11 @@ struct ContentView: View {
                                 Button {
                                     // Navigate to home when arrow is pressed
                                     requestedURL = URL(string: "https://demo.osvdi.uni-freiburg.de")
+                                    if keyboardFocus {keyboardFocus = false} else {keyboardFocus = true}
+                                    withAnimation(.snappy) {
+                                        overlayExpanded.toggle()
+                                    }
+
                                 } label: {
                                     Image(systemName: "chevron.backward.circle.fill")
                                         .font(.system(size: 22, weight: .semibold))
@@ -104,7 +116,7 @@ struct ContentView: View {
                                 if overlayExpanded {
                                     // Keyboard button
                                     Button {
-                                        if keyboardFocus {keyboardFocus = false} else {keyboardFocus = true}
+                                        keyboardFocus.toggle()
                                     } label: {
                                         Image(systemName: "keyboard.fill")
                                             .font(.system(size: 22, weight: .semibold))
@@ -160,3 +172,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+

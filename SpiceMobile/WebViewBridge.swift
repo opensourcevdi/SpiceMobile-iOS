@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import Combine
+import WebKit
 
 /// An observable bridge class to facilitate communication between SwiftUI and an underlying WebView.
 /// 
@@ -22,6 +24,8 @@ final class WebViewBridge: ObservableObject {
     /// The most recent text input sent through this bridge.
     @Published public private(set) var lastSentText: String = ""
     
+    weak var webView: WKWebView?
+    
     /// Sends text input to the underlying web view.
     ///
     /// - Parameter text: The string to send.
@@ -37,8 +41,26 @@ final class WebViewBridge: ObservableObject {
         }
         lastSentText = text
         
-        // Placeholder for forwarding the text input to the WKWebView:
-        // webView?.evaluateJavaScript("handleInput('\(text)')", completionHandler: nil)
+        guard let webView = webView else { return }
+        // Escape text for JS string literal
+        let escaped = text
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "")
+        let js = "window.__nativeInsertText('" + escaped + "')"
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+    
+    public func sendSpecialKey(_ kind: String) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in self?.sendSpecialKey(kind) }
+            return
+        }
+        guard let webView = webView else { return }
+        let escaped = kind.replacingOccurrences(of: "'", with: "\\'")
+        let js = "window.__nativeSpecialKey('" + escaped + "')"
+        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 }
 
@@ -50,3 +72,4 @@ extension WebViewBridge {
     //
     // weak var webView: WKWebView?
 }
+
