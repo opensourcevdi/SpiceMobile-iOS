@@ -233,6 +233,14 @@ observer.observe(document.documentElement || document.body, { childList: true, s
   let totalMoveSinceStartSq = 0;
   let multiTouchActive = false;
 
+  let twoFingerStartTime = { v: 0 };
+  let twoFingerStartX = { v: 0 };
+  let twoFingerStartY = { v: 0 };
+  let twoFingerMoved = { v: false };
+  let twoFingerTimer = { id: null };
+  const twoFingerImmediateWindow = 120; // ms
+  const twoFingerMoveThreshold = 8; // px radius
+
   function distanceSq(aX, aY, bX, bY) { const dx = aX - bX; const dy = aY - bY; return dx*dx + dy*dy; }
 
 
@@ -344,6 +352,14 @@ observer.observe(document.documentElement || document.body, { childList: true, s
     el.dispatchEvent(createMouseEvent(type, clientXY, button, detail));
   }
 
+  function dispatchRightClickAt(clientX, clientY) {
+    const el = document.elementFromPoint(clientX, clientY) || document.body;
+    const clientXY = { clientX: clientX, clientY: clientY };
+    el.dispatchEvent(createMouseEvent('mousedown', clientXY, 2, 1));
+    el.dispatchEvent(createMouseEvent('mouseup', clientXY, 2, 1));
+    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: clientXY.clientX, clientY: clientXY.clientY }));
+  }
+
   document.addEventListener('touchstart', function(e){
     if (e.touches.length === 1) {
       multiTouchActive = false;
@@ -351,6 +367,28 @@ observer.observe(document.documentElement || document.body, { childList: true, s
     } else if (e.touches.length > 1) {
       multiTouchActive = true;
       if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      if (e.touches.length === 2) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        twoFingerStartTime.v = Date.now();
+        twoFingerStartX.v = (t1.clientX + t2.clientX) / 2;
+        twoFingerStartY.v = (t1.clientY + t2.clientY) / 2;
+        twoFingerMoved.v = false;
+        if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
+        twoFingerTimer.id = setTimeout(function(){
+          // Fire right-click only if still in immediate window and not moved, and still two touches
+          try {
+            if (twoFingerMoved.v) return;
+            // Check if two touches still active
+            if (document && typeof document !== 'undefined') {
+              // We cannot access e.touches here; rely on multiTouchActive and movement flag
+            }
+            dispatchRightClickAt(cursorX, cursorY);
+            try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptics) { window.webkit.messageHandlers.haptics.postMessage({ type: 'tap' }); } } catch(_){ }
+          } catch(_) { }
+          twoFingerTimer.id = null;
+        }, twoFingerImmediateWindow);
+      }
       e.preventDefault();
     }
   }, { passive: false });
@@ -360,14 +398,26 @@ observer.observe(document.documentElement || document.body, { childList: true, s
       onTouchMove(e);
     } else if (e.touches.length > 1) {
       multiTouchActive = true;
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      if (e.touches.length >= 2) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const cx = (t1.clientX + t2.clientX) / 2;
+        const cy = (t1.clientY + t2.clientY) / 2;
+        const dx = cx - twoFingerStartX.v;
+        const dy = cy - twoFingerStartY.v;
+        if ((dx*dx + dy*dy) > (twoFingerMoveThreshold * twoFingerMoveThreshold)) {
+          twoFingerMoved.v = true;
+          if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
+        }
+      }
       e.preventDefault();
     }
   }, { passive: false });
 
   document.addEventListener('touchend', function(e){
     if (multiTouchActive) {
-      // Suppress any click/drag end when multi-touch was active
+      // Clear any pending immediate right-click; do not dispatch here
+      if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
       multiTouchActive = false;
       if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
       e.preventDefault();
