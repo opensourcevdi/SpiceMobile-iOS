@@ -22,10 +22,13 @@ struct ContentView: View {
     
     @State private var currentURL: URL? = nil
     @State private var requestedURL: URL? = nil
+
     private var isOnAuthURL: Bool {
         guard let urlString = currentURL?.absoluteString else { return false }
         return urlString.hasPrefix("https://auth.dev.escience.uni-freiburg.de/realms/osvdi/protocol/openid-connect/")
     }
+    
+    
 
     var body: some View {
         
@@ -35,11 +38,15 @@ struct ContentView: View {
                 WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer)
                     .background(Color.clear)
                     .opacity(isLoading ? 0 : 1)
-                    .allowsHitTesting(!isPinching)
+                    .allowsHitTesting(!(isPinching && shouldForceLandscape))
                     .clipped()
                     .highPriorityGesture(
                         MagnificationGesture()
                             .onChanged { value in
+                                if !shouldForceLandscape {
+                                    // Ignore pinch updates when not in landscape
+                                    return
+                                }
                                 withTransaction(Transaction(animation: nil)) {
                                     if !isPinching { isPinching = true }
                                     let proposed = value * cumulativeScale
@@ -47,6 +54,14 @@ struct ContentView: View {
                                 }
                             }
                             .onEnded { value in
+                                if !shouldForceLandscape {
+                                    // Reset transient pinch state if any and ignore end when not in landscape
+                                    withTransaction(Transaction(animation: nil)) {
+                                        transientScale = 1.0
+                                        isPinching = false
+                                    }
+                                    return
+                                }
                                 withTransaction(Transaction(animation: nil)) {
                                     let proposed = value * cumulativeScale
                                     cumulativeScale = min(max(proposed, 0.5), 1.0)
@@ -63,7 +78,10 @@ struct ContentView: View {
 
 
             // Hidden TextField to trigger keyboard on demand
-            TextField("", text: Binding(get: { "" }, set: { newValue in typingBuffer.append(contentsOf: newValue) }))
+            EnhancedTextField(placeholder: "", text: $typingBuffer, onBackspace: { isEmpty in
+                NotificationCenter.default.post(name: .WebViewSendBackspace, object: nil)
+                
+            })
                 .focused($keyboardFocus)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -71,9 +89,7 @@ struct ContentView: View {
                 .opacity(0.01)
                 .disabled(false)
                 .allowsHitTesting(false)
-                .onChange(of: typingBuffer) { newValue in
-                    print("typingBuffer changed:", newValue)
-                }
+                
 
             if !isOnAuthURL { 
                 // Overlay controls (top-right)
@@ -89,9 +105,9 @@ struct ContentView: View {
                                 Button {
                                     // Navigate to home when arrow is pressed
                                     requestedURL = URL(string: "https://demo.osvdi.uni-freiburg.de")
-                                    if keyboardFocus {keyboardFocus = false} else {keyboardFocus = true}
+                                    keyboardFocus = false
                                     withAnimation(.snappy) {
-                                        overlayExpanded.toggle()
+                                        overlayExpanded = false
                                     }
 
                                 } label: {
@@ -133,8 +149,8 @@ struct ContentView: View {
                                 Button {
                                     
                                     withAnimation(.snappy) {
+                                        if overlayExpanded { keyboardFocus = false }
                                         overlayExpanded.toggle()
-                                        if !overlayExpanded { keyboardFocus = false }
                                     }
                                 } label: {
                                     Image(systemName: overlayExpanded ? "minus.circle.fill" : "plus.circle.fill")

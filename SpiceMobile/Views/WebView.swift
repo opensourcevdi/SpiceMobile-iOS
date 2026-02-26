@@ -9,6 +9,7 @@ import SwiftUI
 import WebKit
 import UIKit
 
+extension Notification.Name { static let WebViewSendBackspace = Notification.Name("WebViewSendBackspace") }
 
 
 // MARK: - WebView Wrapper
@@ -664,6 +665,50 @@ observer.observe(document.documentElement || document.body, { childList: true, s
             self.parent = parent
             self.lastLoggedTypingBuffer = parent.typingBuffer
             super.init()
+            NotificationCenter.default.addObserver(self, selector: #selector(handleBackspaceNotification), name: .WebViewSendBackspace, object: nil)
+        }
+        
+        @objc private func handleBackspaceNotification() {
+            sendBackspace()
+        }
+        
+        func sendBackspace() {
+            guard let webView = self.webView else { return }
+            let js = """
+            (function(){
+              function findSpiceTarget(){
+                var canvas = document.querySelector('canvas');
+                if (canvas) return canvas;
+                var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
+                return el || document.body;
+              }
+              function focusTarget(el){
+                try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
+                try { el.focus(); } catch(_) {}
+              }
+              function dispatchKey(el, type, key, code, keyCode){
+                var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
+                try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
+                try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                el.dispatchEvent(evt);
+              }
+              function sendViaSpiceAPIKey(key){
+                try { if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKey === 'function') { window.SpiceKeyboard.sendKey(key); return true; } } catch(_) {}
+                try { if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') { window.rfb._keyboard.keyPress(key); return true; } } catch(_) {}
+                return false;
+              }
+              var target = findSpiceTarget();
+              focusTarget(target);
+              var key = 'Backspace';
+              var code = 'Backspace';
+              var keyCode = 8;
+              dispatchKey(target, 'keydown', key, code, keyCode);
+              dispatchKey(target, 'keyup', key, code, keyCode);
+              sendViaSpiceAPIKey(key);
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
         }
         
         func processTypingBufferChange(old: String, new current: String) {
@@ -676,6 +721,8 @@ observer.observe(document.documentElement || document.body, { childList: true, s
                     .replacingOccurrences(of: "\"", with: "\\\"")
                     .replacingOccurrences(of: "\n", with: "\\n")
                     .replacingOccurrences(of: "\r", with: "\\r")
+               
+                
                 let js = """
                 (function(){
                   function findSpiceTarget(){
@@ -684,70 +731,67 @@ observer.observe(document.documentElement || document.body, { childList: true, s
                     var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
                     return el || document.body;
                   }
+
                   function focusTarget(el){
                     try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
                     try { el.focus(); } catch(_) {}
                   }
+
                   function dispatchKey(el, type, key, code, keyCode){
-                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
-                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
-                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
-                    try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    var evt = new KeyboardEvent(type, {
+                      bubbles: true,
+                      cancelable: true,
+                      key: key,
+                      code: code,
+                      composed: true
+                    });
+
+                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){}
+                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){}
+                    try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){}
+
                     el.dispatchEvent(evt);
                   }
+
                   function sendViaSpiceAPIChar(ch){
-                    try { if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendChar === 'function') { window.SpiceKeyboard.sendChar(ch); return true; } } catch(_) {}
-                    try { if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') { window.rfb._keyboard.keyPress(ch); return true; } } catch(_) {}
+                    try {
+                      if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendChar === 'function') {
+                        window.SpiceKeyboard.sendChar(ch);
+                        return true;
+                      }
+                    } catch(_){}
+
+                    try {
+                      if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') {
+                        window.rfb._keyboard.keyPress(ch);
+                        return true;
+                      }
+                    } catch(_){}
+
                     return false;
                   }
+
                   var target = findSpiceTarget();
                   focusTarget(target);
-                  var ch = \"\(escaped)\";
-                  var code = (ch && ch.length === 1) ? ('Key' + ch.toUpperCase()) : '';
-                  var keyCode = (ch && ch.length === 1) ? ch.charCodeAt(0) : 0;
-                  dispatchKey(target, 'keydown', ch, code, keyCode);
-                  dispatchKey(target, 'keypress', ch, code, keyCode);
-                  dispatchKey(target, 'keyup', ch, code, keyCode);
-                  sendViaSpiceAPIChar(ch);
+
+                  var ch = "\(escaped)";
+
+                  // 🔥 WICHTIG: Erst direkte Unicode-API versuchen
+                  var sent = sendViaSpiceAPIChar(ch);
+
+                  // 🔥 Nur wenn API nicht existiert → ASCII Fallback
+                  if (!sent && ch.length === 1 && ch.charCodeAt(0) < 128) {
+                    var keyCode = ch.charCodeAt(0);
+                    var code = 'Key' + ch.toUpperCase();
+                    dispatchKey(target, 'keydown', ch, code, keyCode);
+                    dispatchKey(target, 'keypress', ch, code, keyCode);
+                    dispatchKey(target, 'keyup', ch, code, keyCode);
+                  }
+
                 })();
                 """
                 webView.evaluateJavaScript(js, completionHandler: nil)
-            } else if current.count < old.count {
-                let js = """
-                (function(){
-                  function findSpiceTarget(){
-                    var canvas = document.querySelector('canvas');
-                    if (canvas) return canvas;
-                    var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
-                    return el || document.body;
-                  }
-                  function focusTarget(el){
-                    try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
-                    try { el.focus(); } catch(_) {}
-                  }
-                  function dispatchKey(el, type, key, code, keyCode){
-                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
-                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
-                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
-                    try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){ }
-                    el.dispatchEvent(evt);
-                  }
-                  function sendViaSpiceAPIKey(key){
-                    try { if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKey === 'function') { window.SpiceKeyboard.sendKey(key); return true; } } catch(_) {}
-                    try { if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') { window.rfb._keyboard.keyPress(key); return true; } } catch(_) {}
-                    return false;
-                  }
-                  var target = findSpiceTarget();
-                  focusTarget(target);
-                  var key = 'Backspace';
-                  var code = 'Backspace';
-                  var keyCode = 8;
-                  dispatchKey(target, 'keydown', key, code, keyCode);
-                  dispatchKey(target, 'keyup', key, code, keyCode);
-                  sendViaSpiceAPIKey(key);
-                })();
-                """
-                webView.evaluateJavaScript(js, completionHandler: nil)
+                
             }
         }
 
