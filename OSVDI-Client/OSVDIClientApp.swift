@@ -9,7 +9,7 @@ import SwiftUI
 import CoreData
 
 @main
-struct SpiceMobileApp: App {
+struct OSVDIClient: App {
     let persistenceController = PersistenceController.shared
 
     var body: some Scene {
