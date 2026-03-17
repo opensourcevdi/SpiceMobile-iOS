@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+
+
+
+// Enhanced textfield (to detect backspace press)
 struct EnhancedTextField: UIViewRepresentable {
     let placeholder: String
     @Binding var text: String
@@ -54,7 +58,9 @@ class EnhancedTextFieldCoordinator: NSObject {
 
 extension EnhancedTextFieldCoordinator: UITextFieldDelegate {
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        
         // Compute the resulting string safely
+        
         let current = textField.text ?? ""
         if let swiftRange = Range(range, in: current) {
             let updated = current.replacingCharacters(in: swiftRange, with: string)

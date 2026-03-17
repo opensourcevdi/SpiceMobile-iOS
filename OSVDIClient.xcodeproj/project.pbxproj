@@ -7,16 +7,17 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		69C636D22EDE01610041D875 /* SpiceMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpiceMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		69C636D22EDE01610041D875 /* OSVDIClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OSVDIClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		69EDD2242F6426100008D85D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		69EDD2262F6426100008D85D /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		69EDD2292F6426100008D85D /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		69EDD22B2F6426100008D85D /* EnhancedTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedTextField.swift; sourceTree = "<group>"; };
+		69EDD22D2F6426100008D85D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		69EDD22E2F6426100008D85D /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
+		69EDD2302F6426100008D85D /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		69EDD2312F6426100008D85D /* OSVDIClientApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSVDIClientApp.swift; sourceTree = "<group>"; };
+		69EDD2332F6426100008D85D /* SpiceMobile.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = SpiceMobile.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		69C636D42EDE01610041D875 /* SpiceMobile */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SpiceMobile;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		69C636CF2EDE01610041D875 /* Frameworks */ = {
@@ -32,7 +33,7 @@
 		69C636C92EDE01610041D875 = {
 			isa = PBXGroup;
 			children = (
-				69C636D42EDE01610041D875 /* SpiceMobile */,
+				69EDD2322F6426100008D85D /* OSVDI-Client */,
 				69C636D32EDE01610041D875 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,17 +41,73 @@
 		69C636D32EDE01610041D875 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				69C636D22EDE01610041D875 /* SpiceMobile.app */,
+				69C636D22EDE01610041D875 /* OSVDIClient.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		69EDD2252F6426100008D85D /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD2242F6426100008D85D /* Assets.xcassets */,
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		69EDD2282F6426100008D85D /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD2262F6426100008D85D /* Persistence.swift */,
+				69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */,
+			);
+			path = CoreData;
+			sourceTree = "<group>";
+		};
+		69EDD22A2F6426100008D85D /* LaunchScreen */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD2292F6426100008D85D /* LaunchScreen.storyboard */,
+			);
+			path = LaunchScreen;
+			sourceTree = "<group>";
+		};
+		69EDD22C2F6426100008D85D /* Swift */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD22B2F6426100008D85D /* EnhancedTextField.swift */,
+			);
+			path = Swift;
+			sourceTree = "<group>";
+		};
+		69EDD22F2F6426100008D85D /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD22D2F6426100008D85D /* ContentView.swift */,
+				69EDD22E2F6426100008D85D /* WebView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		69EDD2322F6426100008D85D /* OSVDI-Client */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD2252F6426100008D85D /* Assets */,
+				69EDD2282F6426100008D85D /* CoreData */,
+				69EDD22A2F6426100008D85D /* LaunchScreen */,
+				69EDD22C2F6426100008D85D /* Swift */,
+				69EDD22F2F6426100008D85D /* Views */,
+				69EDD2302F6426100008D85D /* LICENSE.txt */,
+				69EDD2312F6426100008D85D /* OSVDIClientApp.swift */,
+			);
+			path = "OSVDI-Client";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		69C636D12EDE01610041D875 /* SpiceMobile */ = {
+		69C636D12EDE01610041D875 /* OSVDIClient */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 69C636E22EDE01620041D875 /* Build configuration list for PBXNativeTarget "SpiceMobile" */;
+			buildConfigurationList = 69C636E22EDE01620041D875 /* Build configuration list for PBXNativeTarget "OSVDIClient" */;
 			buildPhases = (
 				69C636CE2EDE01610041D875 /* Sources */,
 				69C636CF2EDE01610041D875 /* Frameworks */,
@@ -60,14 +117,11 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				69C636D42EDE01610041D875 /* SpiceMobile */,
-			);
-			name = SpiceMobile;
+			name = OSVDIClient;
 			packageProductDependencies = (
 			);
 			productName = SpiceMobile;
-			productReference = 69C636D22EDE01610041D875 /* SpiceMobile.app */;
+			productReference = 69C636D22EDE01610041D875 /* OSVDIClient.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -88,7 +142,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 69C636CD2EDE01610041D875 /* Build configuration list for PBXProject "SpiceMobile" */;
+			buildConfigurationList = 69C636CD2EDE01610041D875 /* Build configuration list for PBXProject "OSVDI-Client" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -102,7 +156,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				69C636D12EDE01610041D875 /* SpiceMobile */,
+				69C636D12EDE01610041D875 /* OSVDIClient */,
 			);
 		};
 /* End PBXProject section */
@@ -318,7 +372,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		69C636CD2EDE01610041D875 /* Build configuration list for PBXProject "SpiceMobile" */ = {
+		69C636CD2EDE01610041D875 /* Build configuration list for PBXProject "OSVDI-Client" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				69C636E02EDE01620041D875 /* Debug */,
@@ -327,7 +381,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		69C636E22EDE01620041D875 /* Build configuration list for PBXNativeTarget "SpiceMobile" */ = {
+		69C636E22EDE01620041D875 /* Build configuration list for PBXNativeTarget "OSVDIClient" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				69C636E32EDE01620041D875 /* Debug */,
@@ -337,6 +391,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				69EDD2332F6426100008D85D /* SpiceMobile.xcdatamodel */,
+			);
+			currentVersion = 69EDD2332F6426100008D85D /* SpiceMobile.xcdatamodel */;
+			path = SpiceMobile.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 69C636CA2EDE01610041D875 /* Project object */;
 }
