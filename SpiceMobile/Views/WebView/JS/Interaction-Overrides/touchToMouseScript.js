@@ -27,6 +27,7 @@
       value: false
     });
   }
+    
 
   // Expose a page zoom factor from native; default 1.0
   if (!('touchMousePageZoom' in window)) {
@@ -277,6 +278,7 @@
         }
       }
       e.preventDefault();
+        
     }
   }, { passive: false });
 

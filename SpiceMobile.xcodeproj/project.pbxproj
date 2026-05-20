@@ -7,20 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6940CEC52F69EF61003F9516 /* disableSelectionScript .js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript .js */; };
+		6940CEC52F69EF61003F9516 /* disableSelectionScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */; };
 		6940CEC72F69EF75003F9516 /* touchToMouseScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC62F69EF71003F9516 /* touchToMouseScript.js */; };
 		6940CED02F69FA29003F9516 /* loadJS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6940CECF2F69FA25003F9516 /* loadJS.swift */; };
-		69DB11DF2F6CA3D100266234 /* disableSelectionScript .js in Sources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript .js */; };
-		69DB11E02F6CA3D400266234 /* touchToMouseScript.js in Sources */ = {isa = PBXBuildFile; fileRef = 6940CEC62F69EF71003F9516 /* touchToMouseScript.js */; };
 		69DB11E12F6CA3E200266234 /* SpiceMobile.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */; };
 		69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2242F6426100008D85D /* Assets.xcassets */; };
 		69DB11E32F6CA3E800266234 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2262F6426100008D85D /* Persistence.swift */; };
 		69DB11E42F6CA3EC00266234 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* ContentView.swift */; };
 		69DB11E52F6CA3EF00266234 /* EnhancedTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22B2F6426100008D85D /* EnhancedTextField.swift */; };
 		69DB11E72F6CA3FB00266234 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22E2F6426100008D85D /* WebView.swift */; };
-		69DB11E82F6CA3FD00266234 /* disableSelectionScript .js in Sources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript .js */; };
 		69DB11E92F6CA3FE00266234 /* loadJS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6940CECF2F69FA25003F9516 /* loadJS.swift */; };
-		69DB11EA2F6CA40000266234 /* touchToMouseScript.js in Sources */ = {isa = PBXBuildFile; fileRef = 6940CEC62F69EF71003F9516 /* touchToMouseScript.js */; };
 		69DB11EC2F6CA40800266234 /* SpiceMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2312F6426100008D85D /* SpiceMobileApp.swift */; };
 		69DB11F22F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11EE2F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard */; };
 		69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */; };
@@ -36,7 +32,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6940CEC42F69EF5B003F9516 /* disableSelectionScript .js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "disableSelectionScript .js"; sourceTree = "<group>"; };
+		6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = disableSelectionScript.js; sourceTree = "<group>"; };
 		6940CEC62F69EF71003F9516 /* touchToMouseScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = touchToMouseScript.js; sourceTree = "<group>"; };
 		6940CECF2F69FA25003F9516 /* loadJS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = loadJS.swift; sourceTree = "<group>"; };
 		696151442F6C6D180038A4A7 /* bwLP Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "bwLP Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -74,7 +70,7 @@
 		6940CED32F6A0726003F9516 /* Interaction-Overrides */ = {
 			isa = PBXGroup;
 			children = (
-				6940CEC42F69EF5B003F9516 /* disableSelectionScript .js */,
+				6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */,
 				6940CEC62F69EF71003F9516 /* touchToMouseScript.js */,
 			);
 			path = "Interaction-Overrides";
@@ -233,7 +229,7 @@
 					"Image(/*@START_MENU_TOKEN@*/\"Image Name\"/*@END_MENU_TOKEN@*/)",
 				);
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2610;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					696151432F6C6D180038A4A7 = {
 						CreatedOnToolsVersion = 26.3;
@@ -280,7 +276,7 @@
 				69DB11F22F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
 				6940CEC72F69EF75003F9516 /* touchToMouseScript.js in Resources */,
-				6940CEC52F69EF61003F9516 /* disableSelectionScript .js in Resources */,
+				6940CEC52F69EF61003F9516 /* disableSelectionScript.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,9 +288,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				69DB11EC2F6CA40800266234 /* SpiceMobileApp.swift in Sources */,
-				69DB11EA2F6CA40000266234 /* touchToMouseScript.js in Sources */,
 				69DB11E92F6CA3FE00266234 /* loadJS.swift in Sources */,
-				69DB11E82F6CA3FD00266234 /* disableSelectionScript .js in Sources */,
 				69DB11E72F6CA3FB00266234 /* WebView.swift in Sources */,
 				69DB11E52F6CA3EF00266234 /* EnhancedTextField.swift in Sources */,
 				69DB11E42F6CA3EC00266234 /* ContentView.swift in Sources */,
@@ -308,8 +302,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				69DB11E02F6CA3D400266234 /* touchToMouseScript.js in Sources */,
-				69DB11DF2F6CA3D100266234 /* disableSelectionScript .js in Sources */,
 				6940CED02F69FA29003F9516 /* loadJS.swift in Sources */,
 				69EDD23B2F642BB80008D85D /* Assets.xcassets in Sources */,
 				69EDD23A2F642BA00008D85D /* SpiceMobile.xcdatamodeld in Sources */,
@@ -332,7 +324,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3S7NS8F55M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -348,7 +339,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.unifreiburg.bwlpremote.bwLP-Remote";
+				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -368,7 +359,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3S7NS8F55M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -384,7 +374,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.unifreiburg.bwlpremote.bwLP-Remote";
+				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -431,6 +421,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 3S7NS8F55M;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -454,6 +445,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -494,6 +486,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 3S7NS8F55M;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -510,6 +503,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -522,7 +516,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3S7NS8F55M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -557,7 +550,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3S7NS8F55M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

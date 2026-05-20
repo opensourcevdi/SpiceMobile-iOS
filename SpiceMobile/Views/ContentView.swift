@@ -93,6 +93,9 @@ struct ContentView: View {
             EnhancedTextField(placeholder: "", text: $typingBuffer, onBackspace: { isEmpty in
                 NotificationCenter.default.post(name: .WebViewSendBackspace, object: nil)
                 
+            }, onReturn: {
+                // handle Enter/Return here
+                NotificationCenter.default.post(name: .WebViewSendEnter, object: nil)
             })
             .focused($keyboardFocus)
             .textInputAutocapitalization(.never)
@@ -232,5 +235,3 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
-
-
