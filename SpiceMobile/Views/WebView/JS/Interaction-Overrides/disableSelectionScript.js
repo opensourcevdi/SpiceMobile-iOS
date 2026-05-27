@@ -19,19 +19,10 @@ style.type = 'text/css';
 style.appendChild(document.createTextNode(css));
 document.documentElement.appendChild(style);
 
-
-
-
 // Disable context menu & selection & gestures
 ['contextmenu','selectstart','gesturestart'].forEach(function(type){
   document.addEventListener(type, function(e){ e.preventDefault(); }, { passive: false });
 });
-
-var meta = document.createElement('meta');
-meta.name = "viewport";
-meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-document.head.appendChild(meta);
-
 
 // Prevent multi-touch default behaviors
 document.addEventListener('touchstart', function(e) {
@@ -45,7 +36,6 @@ function disableDragFor(selector) {
     el.addEventListener('dragstart', function(e){ e.preventDefault(); }, { passive: false });
     el.addEventListener('drag', function(e){ e.preventDefault(); }, { passive: false });
     el.addEventListener('drop', function(e){ e.preventDefault(); }, { passive: false });
-      
       
   });
 }

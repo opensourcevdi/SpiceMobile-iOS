@@ -10,6 +10,12 @@
 		6940CEC52F69EF61003F9516 /* disableSelectionScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */; };
 		6940CEC72F69EF75003F9516 /* touchToMouseScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC62F69EF71003F9516 /* touchToMouseScript.js */; };
 		6940CED02F69FA29003F9516 /* loadJS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6940CECF2F69FA25003F9516 /* loadJS.swift */; };
+		69557BDD2FC7909500B24E91 /* touchToMouseScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC62F69EF71003F9516 /* touchToMouseScript.js */; };
+		69557BDE2FC7909900B24E91 /* disableSelectionScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */; };
+		69557BDF2FC790A400B24E91 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
+		69557BE02FC790A800B24E91 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
+		69975F592FC47EF000F9B4A0 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
+		69975F5B2FC47F0100F9B4A0 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
 		69DB11E12F6CA3E200266234 /* SpiceMobile.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */; };
 		69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2242F6426100008D85D /* Assets.xcassets */; };
 		69DB11E32F6CA3E800266234 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2262F6426100008D85D /* Persistence.swift */; };
@@ -36,6 +42,8 @@
 		6940CEC62F69EF71003F9516 /* touchToMouseScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = touchToMouseScript.js; sourceTree = "<group>"; };
 		6940CECF2F69FA25003F9516 /* loadJS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = loadJS.swift; sourceTree = "<group>"; };
 		696151442F6C6D180038A4A7 /* bwLP Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "bwLP Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		69975F582FC47EE900F9B4A0 /* sendBackspace.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendBackspace.js; sourceTree = "<group>"; };
+		69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendEnter.js; sourceTree = "<group>"; };
 		69C636D22EDE01610041D875 /* OSVDIClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OSVDIClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		69DB11EE2F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "bwLP-Remote-LaunchScreen.storyboard"; sourceTree = "<group>"; };
 		69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "OSVDIClient-LaunchScreen.storyboard"; sourceTree = "<group>"; };
@@ -79,6 +87,8 @@
 		6940CED42F6A073E003F9516 /* Keyboard-Handling */ = {
 			isa = PBXGroup;
 			children = (
+				69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */,
+				69975F582FC47EE900F9B4A0 /* sendBackspace.js */,
 			);
 			path = "Keyboard-Handling";
 			sourceTree = "<group>";
@@ -264,8 +274,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69557BDF2FC790A400B24E91 /* sendBackspace.js in Resources */,
 				69DB11F52F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F72F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
+				69557BE02FC790A800B24E91 /* sendEnter.js in Resources */,
+				69557BDD2FC7909500B24E91 /* touchToMouseScript.js in Resources */,
+				69557BDE2FC7909900B24E91 /* disableSelectionScript.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -273,8 +287,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69975F592FC47EF000F9B4A0 /* sendBackspace.js in Resources */,
 				69DB11F22F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
+				69975F5B2FC47F0100F9B4A0 /* sendEnter.js in Resources */,
 				6940CEC72F69EF75003F9516 /* touchToMouseScript.js in Resources */,
 				6940CEC52F69EF61003F9516 /* disableSelectionScript.js in Resources */,
 			);

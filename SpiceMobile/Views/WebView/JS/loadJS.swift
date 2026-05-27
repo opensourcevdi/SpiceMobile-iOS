@@ -8,7 +8,6 @@
 
 import SwiftUI
 import WebKit
-import UIKit
 
 
 // load js file and return WKUserScript

@@ -9,6 +9,7 @@ import SwiftUI
 
 // MARK: - ContentView
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isLoading: Bool = true
     @State private var shouldForceLandscape: Bool = false
     @State private var cumulativeScale: CGFloat = 1.0
@@ -39,7 +40,6 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
             ZStack {
                 
-                
                 WebView(urlString: currentURL?.absoluteString ?? "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer)
                     .background(Color.clear)
                     .opacity(isLoading ? 0 : 1)
@@ -50,7 +50,6 @@ struct ContentView: View {
                         // Force rebuild bei TouchMode-Update
                         webViewID = UUID()
                     }
-                  
                     .highPriorityGesture(
                         MagnificationGesture()
                             .onChanged { value in
@@ -80,22 +79,18 @@ struct ContentView: View {
                                     isPinching = false
                                 }
                             }
-
                     )
-                      
                 
             }
-            
-            .scaleEffect((cumulativeScale * transientScale), anchor: .center)
             
             
             // Hidden TextField to trigger keyboard on demand
             EnhancedTextField(placeholder: "", text: $typingBuffer, onBackspace: { isEmpty in
                 NotificationCenter.default.post(name: .WebViewSendBackspace, object: nil)
-                
             }, onReturn: {
                 // handle Enter/Return here
                 NotificationCenter.default.post(name: .WebViewSendEnter, object: nil)
+                keyboardFocus = false
             })
             .focused($keyboardFocus)
             .textInputAutocapitalization(.never)
@@ -105,17 +100,14 @@ struct ContentView: View {
             .disabled(false)
             .allowsHitTesting(false)
             
-            
             if !isOnAuthURL {
                 // Overlay controls (top-right)
                 VStack {
-                    
                     
                     if shouldForceLandscape {
                         HStack {
                             
                             HStack(spacing: 8) {
-                                
                                 
                                 Button {
                                     // Navigate to home when arrow is pressed
@@ -126,7 +118,7 @@ struct ContentView: View {
                                     }
                                     
                                 } label: {
-                                    Image(systemName: "chevron.backward.circle.fill")
+                                    Image(systemName: "house.fill")
                                         .scaledToFit()
                                         .frame(width: 28, height: 28)
                                         .scaleEffect(0.9)
@@ -138,8 +130,6 @@ struct ContentView: View {
                                 }
                                 .transition(.move(edge: .trailing).combined(with: .opacity))
                             }
-                            
-                            
                             .padding(.top, 24)
                             .padding(.leading, 24)
                             
@@ -188,7 +178,6 @@ struct ContentView: View {
                                     .transition(.move(edge: .trailing).combined(with: .opacity))
                                 }
                                 
-                                
                                 // Arrow toggle button
                                 Button {
                                     
@@ -207,7 +196,6 @@ struct ContentView: View {
                                         .padding(10)
                                         .background(.ultraThinMaterial, in: Capsule())
                                 }
-                                
                             }
                         }
                         .padding(.top, 24)
@@ -228,10 +216,19 @@ struct ContentView: View {
         }
         
         .ignoresSafeArea()
+        // Called when the scene phase changes (e.g., the app returns to the foreground from the background)
+        .onChange(of: scenePhase) { oldValue, newValue in
+            // Detect that the app is active again (in the foreground); in landscape mode, the WebView is reloaded
+            if newValue == .active && shouldForceLandscape == true {
+                // Assign a new identifier to force SwiftUI to rebuild the WebView hierarchy (effectively reloads the WebView)
+                webViewID = UUID()
+            }
+        }
     }
-
 }
 
-#Preview {
+#Preview(traits: .landscapeLeft) {
     ContentView()
+        .preferredColorScheme(.dark)
 }
+
