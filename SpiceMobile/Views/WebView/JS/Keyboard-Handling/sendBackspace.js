@@ -5,6 +5,7 @@
 //  Created by Lennard Siegel on 25.05.26.
 //
 
+// send backspace
 (function(){
   function findSpiceTarget(){
     var canvas = document.querySelector('canvas');

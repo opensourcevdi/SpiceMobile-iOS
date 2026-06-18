@@ -17,6 +17,9 @@ struct ContentView: View {
     @State private var isPinching: Bool = false
     
     @State private var isOverlayExpanded: Bool = false
+    @State private var showCursorSettings: Bool = false
+    @AppStorage("cursorSpeed") private var cursorSpeed: Double = 2.0
+    @State private var tempCursorSpeed: Double = 2.0
     @AppStorage("isTouchMode") private var isTouchMode: Bool = true
     @FocusState private var keyboardFocus: Bool
     @State private var hiddenInput: String = ""
@@ -40,7 +43,7 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
             ZStack {
                 
-                WebView(urlString: currentURL?.absoluteString ?? "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer)
+                WebView(urlString: currentURL?.absoluteString ?? "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer, cursorSpeed: cursorSpeed)
                     .background(Color.clear)
                     .opacity(isLoading ? 0 : 1)
                     .allowsHitTesting(!(isPinching && shouldForceLandscape))
@@ -139,6 +142,23 @@ struct ContentView: View {
                                 
                                 if isOverlayExpanded {
                                     
+                                    // Cursor settings button
+                                    Button {
+                                        showCursorSettings = true
+                                    } label: {
+                                        Image(systemName: "gearshape.fill")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 28, height: 28)
+                                            .scaleEffect(0.9)
+                                            .font(.system(size: 22, weight: .semibold))
+                                            .foregroundStyle(.primary)
+                                            .symbolRenderingMode(.hierarchical)
+                                            .padding(10)
+                                            .background(.ultraThinMaterial, in: Capsule())
+                                    }
+                                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                                    
                                     // touch-mode button
                                     Button {
                                         isTouchMode.toggle()
@@ -214,7 +234,59 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
-        
+        .sheet(isPresented: $showCursorSettings) {
+            VStack(spacing: 16) {
+            
+                /*
+                HStack {
+                    Spacer()
+                    Button {
+                        // Cancel: discard changes and close
+                        showCursorSettings = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .imageScale(.large)
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                    }
+           
+                }
+                .padding(.top, 4)
+                 */
+
+                Text("Maus-Cursor Speed")
+                    .font(.headline)
+                HStack {
+                    Image(systemName: "tortoise.fill")
+                    Slider(value: $tempCursorSpeed, in: 0.5...10.0, step: 0.01)
+                    Image(systemName: "hare.fill")
+                }
+                Text(String(format: "%.1fx", tempCursorSpeed))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button("Done") {
+                    // Commit: apply changes and reload web view
+                    cursorSpeed = tempCursorSpeed
+                    showCursorSettings = false
+                    webViewID = UUID()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .onAppear {
+                // Initialize temp value when sheet appears
+                tempCursorSpeed = cursorSpeed
+            }
+            .frame(minHeight: 240)
+            .background(Color(.systemBackground))
+            .transaction { txn in
+                txn.disablesAnimations = true
+            }
+            .padding()
+            .presentationDetents([.medium])
+            .presentationBackgroundInteraction(.disabled)
+            .presentationDragIndicator(.hidden)
+            .interactiveDismissDisabled(true)
+        }
         .ignoresSafeArea()
         // Called when the scene phase changes (e.g., the app returns to the foreground from the background)
         .onChange(of: scenePhase) { oldValue, newValue in

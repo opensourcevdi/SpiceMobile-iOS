@@ -27,7 +27,6 @@
       value: false
     });
   }
-    
 
   // Expose a page zoom factor from native; default 1.0
   if (!('touchMousePageZoom' in window)) {
@@ -109,16 +108,19 @@
 
 
   function ensureCursor() {
-    if (window.__touchMouseCursorDot) return window.__touchMouseCursorDot;
-    const img = document.createElement('img');
-    img.id = '__touchMouseCursorDot';
-      
-    // Use base64 provided by native via window.touchMouseCursorBase64
-    img.src = (typeof window.touchMouseCursorBase64 === 'string' && window.touchMouseCursorBase64.length > 0)
-      ? (window.touchMouseCursorBase64.startsWith('data:') ? window.touchMouseCursorBase64 : ('data:image/png;base64,' + window.touchMouseCursorBase64))
-      : 'data:image/png;base64,';
-    img.style.position = 'fixed';
+      if (window.__touchMouseCursorDot) return window.__touchMouseCursorDot;
+      const img = document.createElement('img');
+      img.id = '__touchMouseCursorDot';
    
+      
+      // mouse cursor base64 image
+      const base64 = 'iVBORw0KGgoAAAANSUhEUgAAABkAAAAjCAYAAABhCKGoAAAAAXNSR0IArs4c6QAAAIRlWElmTU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAADYAAAAAQAAANgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAABmgAwAEAAAAAQAAACMAAAAA/ltSngAAAAlwSFlzAAAhOAAAITgBRZYxYAAAABxpRE9UAAAAAgAAAAAAAAASAAAAKAAAABIAAAARAAAA6xAOUZoAAAC3SURBVEgN7NCtCsJgFIfx+YGK6B16PyaLxSKCxWIwWAyGBUEQBEEEQRAEwcvQ5x9WZM737D02DzwsjHN+Y0nyn8g/0GN/Qt3IO4XrKW+ftKEO/WR0XIhKqU3us+Vihui5ppa3sntDBK2o6QntcxBBS2p4QYcPiKAF1T2gYwEiaE61WOj0BRE0o2oMdA5ABE1joEsgImhMFTLPlQ0dCG1kFli4GYDsQ4ZW6F4CETawQI+SiKB+HvQCAAD//5d+LDIAAADsSURBVGNgwASvgEL/KcBFmEZiirwlwoLXQDUXgfgBEL8D4j9ADHPYNCCbIHgPVAHTgIt+BFTDjGYSN5AvDsRMaOJYuZ+AouiGz8IiFoxVN5GCX9EMrIXqu4Imvp9I87Aq+4FkGHL45iKJw3yqg9UEIgR/QQ1bC6SRw1cAyEf35QwizMOqZCFQdDUQc2CRnQcUg/kCRH8BYpDlVAVmQNOQLQGxC6lqA9Swc2gW3QbyGaltUTqaJSDfeFHbEh6ggeh5aTO1LQGZNx2IkeMGVN5RHWgATfwJxDCL1lHdBqiB9kB6ERC3ADEfVGyYUwD30+1dzivT0gAAAABJRU5ErkJggg==';
+      
+      img.src = 'data:image/png;base64,' + base64;
+      img.style.position = 'fixed';
+   
+
+
     // Hotspot of typical Windows cursor is near the top-left corner; offset a bit so the tip is the point
     img.style.marginLeft = '0px';
     img.style.marginTop = '0px';
