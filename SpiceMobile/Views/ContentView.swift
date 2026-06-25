@@ -235,57 +235,58 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showCursorSettings) {
-            VStack(spacing: 16) {
-            
-                /*
-                HStack {
-                    Spacer()
-                    Button {
-                        // Cancel: discard changes and close
-                        showCursorSettings = false
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .imageScale(.large)
-                            .foregroundStyle(.secondary)
-                            .padding(8)
+            ZStack {
+                VStack{
+                    HStack {
+                        Spacer()
+                        Button {
+                            // Cancel: discard changes and close
+                            showCursorSettings = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 25))
+                                .foregroundStyle(.secondary)
+                                .padding(20)
+                        }
                     }
-           
+                    .padding(.top, 4)
+                    Spacer()
                 }
-                .padding(.top, 4)
-                 */
-
-                Text("Maus-Cursor Speed")
-                    .font(.headline)
-                HStack {
-                    Image(systemName: "tortoise.fill")
-                    Slider(value: $tempCursorSpeed, in: 0.5...10.0, step: 0.01)
-                    Image(systemName: "hare.fill")
+    
+                VStack(spacing: 16) {
+                    Text("Mouse-Cursor Speed")
+                        .font(.headline)
+                    HStack {
+                        Image(systemName: "tortoise.fill")
+                        Slider(value: $tempCursorSpeed, in: 0.5...10.0, step: 0.01)
+                        Image(systemName: "hare.fill")
+                    }
+                    Text(String(format: "%.1fx", tempCursorSpeed))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button("Done") {
+                        // Commit: apply changes and reload web view
+                        cursorSpeed = tempCursorSpeed
+                        showCursorSettings = false
+                        webViewID = UUID()
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                Text(String(format: "%.1fx", tempCursorSpeed))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Button("Done") {
-                    // Commit: apply changes and reload web view
-                    cursorSpeed = tempCursorSpeed
-                    showCursorSettings = false
-                    webViewID = UUID()
+                .onAppear {
+                    // Initialize temp value when sheet appears
+                    tempCursorSpeed = cursorSpeed
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(minHeight: 240)
+                .background(Color(.systemBackground))
+                .transaction { txn in
+                    txn.disablesAnimations = true
+                }
+                .padding()
+                .presentationDetents([.medium])
+                .presentationBackgroundInteraction(.disabled)
+                .presentationDragIndicator(.hidden)
+                .interactiveDismissDisabled(true)
             }
-            .onAppear {
-                // Initialize temp value when sheet appears
-                tempCursorSpeed = cursorSpeed
-            }
-            .frame(minHeight: 240)
-            .background(Color(.systemBackground))
-            .transaction { txn in
-                txn.disablesAnimations = true
-            }
-            .padding()
-            .presentationDetents([.medium])
-            .presentationBackgroundInteraction(.disabled)
-            .presentationDragIndicator(.hidden)
-            .interactiveDismissDisabled(true)
         }
         .ignoresSafeArea()
         // Called when the scene phase changes (e.g., the app returns to the foreground from the background)
