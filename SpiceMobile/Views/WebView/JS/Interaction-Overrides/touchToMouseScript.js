@@ -47,6 +47,16 @@
       value: 0.6
     });
   }
+
+  // Optional scroll speed multiplier for two-finger scrolling
+  if (!('touchMouseScrollSpeed' in window)) {
+    Object.defineProperty(window, 'touchMouseScrollSpeed', {
+      configurable: true,
+      enumerable: false,
+      writable: true,
+      value: 2.0 // default multiplier
+    });
+  }
   
 
   function getViewportScale() {
@@ -98,6 +108,8 @@
   let twoFingerStartTime = { v: 0 };
   let twoFingerStartX = { v: 0 };
   let twoFingerStartY = { v: 0 };
+  let twoFingerLastX = 0;
+  let twoFingerLastY = 0;
   let twoFingerMoved = { v: false };
   let twoFingerTimer = { id: null };
   const twoFingerImmediateWindow = 120; // ms
@@ -138,6 +150,36 @@
       hasCursorPosition = true;
     }
     return img;
+  }
+
+  function createWheelEvent(deltaX, deltaY, clientX, clientY){
+    let evt;
+    try {
+      evt = new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        deltaMode: 0, // pixel
+        deltaX: deltaX,
+        deltaY: deltaY,
+        clientX: clientX,
+        clientY: clientY
+      });
+    } catch (e) {
+      evt = document.createEvent('WheelEvent');
+      evt.initEvent('wheel', true, true);
+      evt.deltaX = deltaX;
+      evt.deltaY = deltaY;
+      evt.clientX = clientX;
+      evt.clientY = clientY;
+    }
+    return evt;
+  }
+
+  function dispatchWheelAt(clientX, clientY, dx, dy){
+    const el = document.elementFromPoint(clientX, clientY) || document.body;
+    const wheel = createWheelEvent(dx, dy, clientX, clientY);
+    el.dispatchEvent(wheel);
   }
 
 
@@ -243,6 +285,8 @@
         twoFingerStartX.v = (t1.clientX + t2.clientX) / 2;
         twoFingerStartY.v = (t1.clientY + t2.clientY) / 2;
         twoFingerMoved.v = false;
+        twoFingerLastX = twoFingerStartX.v;
+        twoFingerLastY = twoFingerStartY.v;
         if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
         twoFingerTimer.id = setTimeout(function(){
           // Fire right-click only if still in immediate window and not moved, and still two touches
@@ -277,6 +321,18 @@
         if ((dx*dx + dy*dy) > (twoFingerMoveThreshold * twoFingerMoveThreshold)) {
           twoFingerMoved.v = true;
           if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
+        }
+        // Two-finger scroll handling
+        const eff = getEffectiveScale();
+        const moveDX = cx - twoFingerLastX;
+        const moveDY = cy - twoFingerLastY;
+        twoFingerLastX = cx;
+        twoFingerLastY = cy;
+        const scrollSpeed = (typeof window.touchMouseScrollSpeed === 'number' && isFinite(window.touchMouseScrollSpeed)) ? window.touchMouseScrollSpeed : 2.0;
+        const pxDX = -(moveDX) * scrollSpeed / (eff || 1);
+        const pxDY = -(moveDY) * scrollSpeed / (eff || 1);
+        if (Math.abs(pxDX) + Math.abs(pxDY) > 0) {
+          dispatchWheelAt(cx, cy, pxDX, pxDY);
         }
       }
       e.preventDefault();
@@ -413,3 +469,4 @@
   }
 
 })();
+

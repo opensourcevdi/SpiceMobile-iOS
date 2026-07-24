@@ -14,12 +14,14 @@
 		69557BDE2FC7909900B24E91 /* disableSelectionScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */; };
 		69557BDF2FC790A400B24E91 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
 		69557BE02FC790A800B24E91 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
+		69834CEE300978C900A7048A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69834CED300978C900A7048A /* ContentView.swift */; };
+		69834CEF300978C900A7048A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69834CED300978C900A7048A /* ContentView.swift */; };
+		6989BD663013A93800DF8BDB /* DocumentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6989BD653013A93800DF8BDB /* DocumentPickerView.swift */; };
+		6989BD673013A93800DF8BDB /* DocumentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6989BD653013A93800DF8BDB /* DocumentPickerView.swift */; };
 		69975F592FC47EF000F9B4A0 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
 		69975F5B2FC47F0100F9B4A0 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
-		69DB11E12F6CA3E200266234 /* SpiceMobile.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */; };
 		69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2242F6426100008D85D /* Assets.xcassets */; };
-		69DB11E32F6CA3E800266234 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2262F6426100008D85D /* Persistence.swift */; };
-		69DB11E42F6CA3EC00266234 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* ContentView.swift */; };
+		69DB11E42F6CA3EC00266234 /* VMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* VMView.swift */; };
 		69DB11E52F6CA3EF00266234 /* EnhancedTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22B2F6426100008D85D /* EnhancedTextField.swift */; };
 		69DB11E72F6CA3FB00266234 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22E2F6426100008D85D /* WebView.swift */; };
 		69DB11E92F6CA3FE00266234 /* loadJS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6940CECF2F69FA25003F9516 /* loadJS.swift */; };
@@ -29,11 +31,9 @@
 		69DB11F52F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11EE2F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard */; };
 		69DB11F72F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */; };
 		69EDD2342F642B090008D85D /* SpiceMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2312F6426100008D85D /* SpiceMobileApp.swift */; };
-		69EDD2352F642B560008D85D /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2262F6426100008D85D /* Persistence.swift */; };
 		69EDD2362F642B870008D85D /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22E2F6426100008D85D /* WebView.swift */; };
-		69EDD2372F642B8B0008D85D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* ContentView.swift */; };
+		69EDD2372F642B8B0008D85D /* VMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* VMView.swift */; };
 		69EDD2392F642B930008D85D /* EnhancedTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22B2F6426100008D85D /* EnhancedTextField.swift */; };
-		69EDD23A2F642BA00008D85D /* SpiceMobile.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */; };
 		69EDD23B2F642BB80008D85D /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2242F6426100008D85D /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -42,19 +42,19 @@
 		6940CEC62F69EF71003F9516 /* touchToMouseScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = touchToMouseScript.js; sourceTree = "<group>"; };
 		6940CECF2F69FA25003F9516 /* loadJS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = loadJS.swift; sourceTree = "<group>"; };
 		696151442F6C6D180038A4A7 /* bwLP Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "bwLP Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		69834CED300978C900A7048A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		6989BD653013A93800DF8BDB /* DocumentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerView.swift; sourceTree = "<group>"; };
 		69975F582FC47EE900F9B4A0 /* sendBackspace.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendBackspace.js; sourceTree = "<group>"; };
 		69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendEnter.js; sourceTree = "<group>"; };
 		69C636D22EDE01610041D875 /* OSVDIClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OSVDIClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		69DB11EE2F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "bwLP-Remote-LaunchScreen.storyboard"; sourceTree = "<group>"; };
 		69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "OSVDIClient-LaunchScreen.storyboard"; sourceTree = "<group>"; };
 		69EDD2242F6426100008D85D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		69EDD2262F6426100008D85D /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		69EDD22B2F6426100008D85D /* EnhancedTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedTextField.swift; sourceTree = "<group>"; };
-		69EDD22D2F6426100008D85D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		69EDD22D2F6426100008D85D /* VMView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMView.swift; sourceTree = "<group>"; };
 		69EDD22E2F6426100008D85D /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		69EDD2302F6426100008D85D /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		69EDD2312F6426100008D85D /* SpiceMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiceMobileApp.swift; sourceTree = "<group>"; };
-		69EDD2332F6426100008D85D /* SpiceMobile.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = SpiceMobile.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +112,15 @@
 			path = JS;
 			sourceTree = "<group>";
 		};
+		6989BD6D3013B04600DF8BDB /* VMView */ = {
+			isa = PBXGroup;
+			children = (
+				69EDD22D2F6426100008D85D /* VMView.swift */,
+				6989BD653013A93800DF8BDB /* DocumentPickerView.swift */,
+			);
+			path = VMView;
+			sourceTree = "<group>";
+		};
 		69C636C92EDE01610041D875 = {
 			isa = PBXGroup;
 			children = (
@@ -147,15 +156,6 @@
 			path = Assets;
 			sourceTree = "<group>";
 		};
-		69EDD2282F6426100008D85D /* CoreData */ = {
-			isa = PBXGroup;
-			children = (
-				69EDD2262F6426100008D85D /* Persistence.swift */,
-				69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */,
-			);
-			path = CoreData;
-			sourceTree = "<group>";
-		};
 		69EDD22C2F6426100008D85D /* EnhancedTextField */ = {
 			isa = PBXGroup;
 			children = (
@@ -167,8 +167,9 @@
 		69EDD22F2F6426100008D85D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6989BD6D3013B04600DF8BDB /* VMView */,
 				6976B5392F69EAAE00DB652E /* WebView */,
-				69EDD22D2F6426100008D85D /* ContentView.swift */,
+				69834CED300978C900A7048A /* ContentView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -178,7 +179,6 @@
 			children = (
 				69DB11F12F6CA43700266234 /* LaunchScreens */,
 				69EDD2252F6426100008D85D /* Assets */,
-				69EDD2282F6426100008D85D /* CoreData */,
 				69EDD22C2F6426100008D85D /* EnhancedTextField */,
 				69EDD22F2F6426100008D85D /* Views */,
 				69EDD2302F6426100008D85D /* LICENSE.txt */,
@@ -305,12 +305,12 @@
 			files = (
 				69DB11EC2F6CA40800266234 /* SpiceMobileApp.swift in Sources */,
 				69DB11E92F6CA3FE00266234 /* loadJS.swift in Sources */,
+				69834CEF300978C900A7048A /* ContentView.swift in Sources */,
+				6989BD663013A93800DF8BDB /* DocumentPickerView.swift in Sources */,
 				69DB11E72F6CA3FB00266234 /* WebView.swift in Sources */,
 				69DB11E52F6CA3EF00266234 /* EnhancedTextField.swift in Sources */,
-				69DB11E42F6CA3EC00266234 /* ContentView.swift in Sources */,
-				69DB11E32F6CA3E800266234 /* Persistence.swift in Sources */,
+				69DB11E42F6CA3EC00266234 /* VMView.swift in Sources */,
 				69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */,
-				69DB11E12F6CA3E200266234 /* SpiceMobile.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -320,11 +320,11 @@
 			files = (
 				6940CED02F69FA29003F9516 /* loadJS.swift in Sources */,
 				69EDD23B2F642BB80008D85D /* Assets.xcassets in Sources */,
-				69EDD23A2F642BA00008D85D /* SpiceMobile.xcdatamodeld in Sources */,
+				69834CEE300978C900A7048A /* ContentView.swift in Sources */,
+				6989BD673013A93800DF8BDB /* DocumentPickerView.swift in Sources */,
 				69EDD2392F642B930008D85D /* EnhancedTextField.swift in Sources */,
-				69EDD2372F642B8B0008D85D /* ContentView.swift in Sources */,
+				69EDD2372F642B8B0008D85D /* VMView.swift in Sources */,
 				69EDD2362F642B870008D85D /* WebView.swift in Sources */,
-				69EDD2352F642B560008D85D /* Persistence.swift in Sources */,
 				69EDD2342F642B090008D85D /* SpiceMobileApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -339,7 +339,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -354,7 +354,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -374,7 +374,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -389,7 +389,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -531,7 +531,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "OSVDIClient-AppIcon";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -546,7 +546,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -565,7 +565,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "OSVDIClient-AppIcon";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -580,7 +580,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -624,19 +624,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCVersionGroup section */
-		69EDD2272F6426100008D85D /* SpiceMobile.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				69EDD2332F6426100008D85D /* SpiceMobile.xcdatamodel */,
-			);
-			currentVersion = 69EDD2332F6426100008D85D /* SpiceMobile.xcdatamodel */;
-			path = SpiceMobile.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 	};
 	rootObject = 69C636CA2EDE01610041D875 /* Project object */;
 }

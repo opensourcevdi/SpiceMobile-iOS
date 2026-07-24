@@ -8,11 +8,7 @@
 import SwiftUI
 import WebKit
 import UIKit
-
-extension Notification.Name {
-    static let WebViewSendBackspace = Notification.Name("WebViewSendBackspace")
-    static let WebViewSendEnter = Notification.Name("WebViewSendEnter")
-}
+import UniformTypeIdentifiers
 
 
 // MARK: - WebView Wrapper
@@ -235,19 +231,29 @@ struct WebView: UIViewRepresentable {
         DispatchQueue.main.async { self.requestedURL = nil }
     }
 
+    // MARK: - Coordinator Class
     class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: WebView
         
         weak var webView: WKWebView?
         
         var lastLoggedTypingBuffer: String = ""
+        
+        private static let sendBackspaceNotification = Notification.Name("WebViewSendBackspace")
+        private static let sendEnterNotification = Notification.Name("WebViewSendEnter")
+        private static let uploadFilesNotification = Notification.Name("WebViewUploadFiles")
 
         init(parent: WebView) {
             self.parent = parent
             self.lastLoggedTypingBuffer = parent.typingBuffer
             super.init()
-            NotificationCenter.default.addObserver(self, selector: #selector(handleBackspaceNotification), name: .WebViewSendBackspace, object: nil)
-            NotificationCenter.default.addObserver(self, selector: #selector(handleEnterNotification), name: .WebViewSendEnter, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleBackspaceNotification), name: Coordinator.sendBackspaceNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleEnterNotification), name: Coordinator.sendEnterNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleUploadFilesNotification(_:)), name: Coordinator.uploadFilesNotification, object: nil)
+        }
+        
+        deinit {
+            NotificationCenter.default.removeObserver(self)
         }
         
         @objc private func handleBackspaceNotification() {
@@ -256,6 +262,140 @@ struct WebView: UIViewRepresentable {
         
         @objc private func handleEnterNotification() {
             sendEnter()
+        }
+        
+        @objc private func handleUploadFilesNotification(_ notification: Notification) {
+            guard let webView = self.webView else { return }
+            
+            // Extract files array of URLs either from notification.object or notification.userInfo["files"]
+            let fileURLs: [URL]?
+            if let obj = notification.object as? [URL] {
+                fileURLs = obj
+            } else if let info = notification.userInfo, let files = info["files"] as? [URL] {
+                fileURLs = files
+            } else {
+                fileURLs = nil
+            }
+            
+            guard let urls = fileURLs, !urls.isEmpty else { return }
+            
+            var fileDescriptors: [[String: String]] = []
+            
+            for fileURL in urls {
+                guard let data = try? Data(contentsOf: fileURL) else { continue }
+                
+                let ext = fileURL.pathExtension
+                let utType = UTType(filenameExtension: ext)
+                let mime = utType?.preferredMIMEType ?? "application/octet-stream"
+                
+                let base64String = data.base64EncodedString()
+                
+                fileDescriptors.append([
+                    "name": fileURL.lastPathComponent,
+                    "mime": mime,
+                    "base64": base64String
+                ])
+            }
+            
+            guard !fileDescriptors.isEmpty else { return }
+            
+            var jsonData: Data
+            do {
+                jsonData = try JSONSerialization.data(withJSONObject: fileDescriptors, options: [])
+            } catch {
+                return
+            }
+            
+            guard let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+    
+            // JS to create File objects and send to appropriate handlers
+            let js = """
+            (function(){
+                function b64ToUint8Array(b64){
+                    const bin = atob(b64);
+                    const len = bin.length;
+                    const bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+                    return bytes;
+                }
+
+                // Build File[] from descriptor array
+                var filesData = \(jsonString);
+                var fileObjs = filesData.map(function(f){
+                    var bytes = b64ToUint8Array(f.base64);
+                    var blob = new Blob([bytes], {type: f.mime});
+                    return new File([blob], f.name, {type: f.mime});
+                });
+
+                // 1) Explicit integration hook
+                if (typeof window.receiveNativeFiles === 'function') {
+                    try { window.receiveNativeFiles(fileObjs); return; } catch(_){}
+                }
+
+                // 2) Try to find a reasonable drop target commonly used by SPICE/VNC UIs
+                function findPrimaryTarget(){
+                    var selectors = [
+                        'canvas',
+                        '#spice-screen', '.spice-screen',
+                        '#display',
+                        '.noVNC_canvas', '#noVNC_canvas', 'canvas#noVNC_canvas',
+                        '[data-drop-zone]', '.dropzone', '#dropzone'
+                    ];
+                    for (var i = 0; i < selectors.length; i++){
+                        var el = document.querySelector(selectors[i]);
+                        if (el) return el;
+                    }
+                    return document.body;
+                }
+
+                var target = findPrimaryTarget();
+
+                // 3) Create a DataTransfer and attach Files
+                var dataTransfer = new DataTransfer();
+                fileObjs.forEach(function(file){ dataTransfer.items.add(file); });
+
+                // 4) Helper to create proper DragEvent with dataTransfer
+                function createDragEvent(type, dt){
+                    var evt;
+                    try {
+                        evt = new DragEvent(type, {
+                            bubbles: true,
+                            cancelable: true,
+                            composed: true,
+                            dataTransfer: dt
+                        });
+                    } catch (e) {
+                        // Safari fallback: construct then assign
+                        evt = document.createEvent('DragEvent');
+                        evt.initEvent(type, true, true);
+                        try { Object.defineProperty(evt, 'dataTransfer', { value: dt }); } catch(_){ evt.dataTransfer = dt; }
+                    }
+                    return evt;
+                }
+
+                function dispatchDragSequence(el, dt){
+                    var enter = createDragEvent('dragenter', dt);
+                    var over  = createDragEvent('dragover', dt);
+                    var drop  = createDragEvent('drop', dt);
+                    el.dispatchEvent(enter);
+                    el.dispatchEvent(over);
+                    el.dispatchEvent(drop);
+                }
+
+                // 5) Give the page a tick to attach listeners if needed, then dispatch
+                requestAnimationFrame(function(){
+                    try { dispatchDragSequence(target, dataTransfer); } catch(_){ }
+                });
+
+                // 6) Fallback: try a visible file input (cannot set files programmatically for security, but we can at least click)
+                var fileInput = document.querySelector('input[type=file]:not([disabled])');
+                if (fileInput && typeof fileInput.click === 'function') {
+                    try { fileInput.focus(); fileInput.click(); } catch(_){ }
+                }
+            })();
+            """
+            
+            webView.evaluateJavaScript(js, completionHandler: nil)
         }
         
         func sendBackspace() {
@@ -416,6 +556,7 @@ struct WebView: UIViewRepresentable {
                     webView.evaluateJavaScript("window.touchMouseCursorSpeed = 1.0;") { _, _ in }
                 }
                 webView.evaluateJavaScript("window.touchMouseLerp = 0.6;") { _, _ in }
+                webView.evaluateJavaScript("window.touchMouseScrollSpeed = 2.0;") { _, _ in }
             } else {
                 webView.evaluateJavaScript("window.enableTouchMouseBridge = false;") { _, _ in }
                 webView.evaluateJavaScript("window.touchMousePageZoom = 1.0;") { _, _ in }
