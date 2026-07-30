@@ -250,6 +250,8 @@ struct WebView: UIViewRepresentable {
             NotificationCenter.default.addObserver(self, selector: #selector(handleBackspaceNotification), name: Coordinator.sendBackspaceNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleEnterNotification), name: Coordinator.sendEnterNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleUploadFilesNotification(_:)), name: Coordinator.uploadFilesNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleF1Notification), name: Notification.Name("WebViewSendF1"), object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleFunctionKeyNotification(_:)), name: Notification.Name("WebViewSendFunctionKey"), object: nil)
         }
         
         deinit {
@@ -262,6 +264,10 @@ struct WebView: UIViewRepresentable {
         
         @objc private func handleEnterNotification() {
             sendEnter()
+        }
+
+        @objc private func handleF1Notification() {
+            sendF1()
         }
         
         @objc private func handleUploadFilesNotification(_ notification: Notification) {
@@ -409,6 +415,124 @@ struct WebView: UIViewRepresentable {
             guard let webView = self.webView else { return }
             let js = JSLoader(fileName: "sendEnter")
             webView.evaluateJavaScript(js.source, completionHandler: nil)
+        }
+
+        func sendF1() {
+            guard let webView = self.webView else { return }
+            let js = """
+            (function(){
+                function focusTarget(el){
+                    try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
+                    try { el.focus(); } catch(_) {}
+                }
+                function findTarget(){
+                    var canvas = document.querySelector('canvas');
+                    if (canvas) return canvas;
+                    var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
+                    return el || document.body;
+                }
+                function dispatchKey(el, type, key, code, keyCode){
+                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
+                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
+                    el.dispatchEvent(evt);
+                }
+                function sendViaAPI(){
+                    try {
+                        if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKeyCode === 'function') {
+                            // Common F1 keycode in many systems is 112
+                            window.SpiceKeyboard.sendKeyCode(112);
+                            return true;
+                        }
+                    } catch(_){}
+                    try {
+                        if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown === 'function' && typeof window.rfb._keyboard.keyUp === 'function') {
+                            // noVNC keyboard API
+                            window.rfb._keyboard.keyDown({keysym: 0xFFBE}); // XK_F1
+                            window.rfb._keyboard.keyUp({keysym: 0xFFBE});
+                            return true;
+                        }
+                    } catch(_){}
+                    return false;
+                }
+                var target = findTarget();
+                focusTarget(target);
+                var sent = sendViaAPI();
+                if (!sent) {
+                    // Fallback to DOM KeyboardEvents
+                    var key = 'F1';
+                    var code = 'F1';
+                    var keyCode = 112;
+                    dispatchKey(target, 'keydown', key, code, keyCode);
+                    dispatchKey(target, 'keyup', key, code, keyCode);
+                }
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        @objc private func handleFunctionKeyNotification(_ notification: Notification) {
+            var n: Int? = nil
+            if let obj = notification.object as? Int {
+                n = obj
+            } else if let info = notification.userInfo?["key"] as? Int {
+                n = info
+            }
+            guard let num = n, (1...12).contains(num) else { return }
+            sendFunctionKey(num)
+        }
+
+        func sendFunctionKey(_ n: Int) {
+            guard let webView = self.webView else { return }
+            let js = """
+            (function(){
+                function focusTarget(el){
+                    try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
+                    try { el.focus(); } catch(_) {}
+                }
+                function findTarget(){
+                    var canvas = document.querySelector('canvas');
+                    if (canvas) return canvas;
+                    var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
+                    return el || document.body;
+                }
+                function dispatchKey(el, type, key, code, keyCode){
+                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
+                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
+                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
+                    el.dispatchEvent(evt);
+                }
+                function sendViaAPI(n){
+                    try {
+                        if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKeyCode === 'function') {
+                            window.SpiceKeyboard.sendKeyCode(112 + (n - 1)); // 112 = F1
+                            return true;
+                        }
+                    } catch(_){ }
+                    try {
+                        if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown === 'function' && typeof window.rfb._keyboard.keyUp === 'function') {
+                            var base = 0xFFBE; // XK_F1
+                            var keysym = base + (n - 1);
+                            window.rfb._keyboard.keyDown({keysym: keysym});
+                            window.rfb._keyboard.keyUp({keysym: keysym});
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                var target = findTarget();
+                focusTarget(target);
+                var n = \(n);
+                var sent = sendViaAPI(n);
+                if (!sent) {
+                    var keyName = 'F' + String(n);
+                    var keyCode = 111 + n; // 112..123
+                    dispatchKey(target, 'keydown', keyName, keyName, keyCode);
+                    dispatchKey(target, 'keyup', keyName, keyName, keyCode);
+                }
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
         }
         
         func processTypingBufferChange(old: String, new current: String) {
@@ -631,3 +755,4 @@ struct WebView: UIViewRepresentable {
     }
     return WebView_PreviewWrapper()
 }
+
