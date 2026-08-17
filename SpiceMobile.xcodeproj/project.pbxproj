@@ -14,6 +14,8 @@
 		69557BDE2FC7909900B24E91 /* disableSelectionScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */; };
 		69557BDF2FC790A400B24E91 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
 		69557BE02FC790A800B24E91 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
+		697921B1301CAD2E00295DFA /* fileUplaod.js in Resources */ = {isa = PBXBuildFile; fileRef = 697921B0301CAD2700295DFA /* fileUplaod.js */; };
+		697921B2301CAD2E00295DFA /* fileUplaod.js in Resources */ = {isa = PBXBuildFile; fileRef = 697921B0301CAD2700295DFA /* fileUplaod.js */; };
 		69834CEE300978C900A7048A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69834CED300978C900A7048A /* ContentView.swift */; };
 		69834CEF300978C900A7048A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69834CED300978C900A7048A /* ContentView.swift */; };
 		6989BD663013A93800DF8BDB /* DocumentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6989BD653013A93800DF8BDB /* DocumentPickerView.swift */; };
@@ -42,6 +44,8 @@
 		6940CEC62F69EF71003F9516 /* touchToMouseScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = touchToMouseScript.js; sourceTree = "<group>"; };
 		6940CECF2F69FA25003F9516 /* loadJS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = loadJS.swift; sourceTree = "<group>"; };
 		696151442F6C6D180038A4A7 /* bwLP Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "bwLP Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		697921AB301C9FEC00295DFA /* bugs.txt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = bugs.txt.swift; sourceTree = "<group>"; };
+		697921B0301CAD2700295DFA /* fileUplaod.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = fileUplaod.js; sourceTree = "<group>"; };
 		69834CED300978C900A7048A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6989BD653013A93800DF8BDB /* DocumentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerView.swift; sourceTree = "<group>"; };
 		69975F582FC47EE900F9B4A0 /* sendBackspace.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendBackspace.js; sourceTree = "<group>"; };
@@ -105,11 +109,20 @@
 		6976B53A2F69EABD00DB652E /* JS */ = {
 			isa = PBXGroup;
 			children = (
+				697921AC301CAD0C00295DFA /* File-Upload */,
 				6940CED42F6A073E003F9516 /* Keyboard-Handling */,
 				6940CED32F6A0726003F9516 /* Interaction-Overrides */,
 				6940CECF2F69FA25003F9516 /* loadJS.swift */,
 			);
 			path = JS;
+			sourceTree = "<group>";
+		};
+		697921AC301CAD0C00295DFA /* File-Upload */ = {
+			isa = PBXGroup;
+			children = (
+				697921B0301CAD2700295DFA /* fileUplaod.js */,
+			);
+			path = "File-Upload";
 			sourceTree = "<group>";
 		};
 		6989BD6D3013B04600DF8BDB /* VMView */ = {
@@ -124,6 +137,7 @@
 		69C636C92EDE01610041D875 = {
 			isa = PBXGroup;
 			children = (
+				697921AB301C9FEC00295DFA /* bugs.txt.swift */,
 				69EDD2322F6426100008D85D /* SpiceMobile */,
 				69C636D32EDE01610041D875 /* Products */,
 			);
@@ -278,6 +292,7 @@
 				69DB11F52F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F72F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
 				69557BE02FC790A800B24E91 /* sendEnter.js in Resources */,
+				697921B1301CAD2E00295DFA /* fileUplaod.js in Resources */,
 				69557BDD2FC7909500B24E91 /* touchToMouseScript.js in Resources */,
 				69557BDE2FC7909900B24E91 /* disableSelectionScript.js in Resources */,
 			);
@@ -291,6 +306,7 @@
 				69DB11F22F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
 				69975F5B2FC47F0100F9B4A0 /* sendEnter.js in Resources */,
+				697921B2301CAD2E00295DFA /* fileUplaod.js in Resources */,
 				6940CEC72F69EF75003F9516 /* touchToMouseScript.js in Resources */,
 				6940CEC52F69EF61003F9516 /* disableSelectionScript.js in Resources */,
 			);
@@ -354,7 +370,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -389,7 +405,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -546,7 +562,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -580,7 +596,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

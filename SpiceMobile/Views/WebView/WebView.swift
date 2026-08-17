@@ -94,9 +94,6 @@ struct WebView: UIViewRepresentable {
     }
      */
 
-    
-
-    
 
     private func makeConfiguredWebView(context: Context) -> WKWebView {
         let contentController = WKUserContentController()
@@ -153,7 +150,6 @@ struct WebView: UIViewRepresentable {
                 self.currentURL = nil
             }
             webView.scrollView.bounces = false
-            // webView.scrollView.isScrollEnabled = false
             webView.scrollView.alwaysBounceVertical = false
             webView.scrollView.alwaysBounceHorizontal = false
             webView.allowsBackForwardNavigationGestures = false
@@ -250,7 +246,6 @@ struct WebView: UIViewRepresentable {
             NotificationCenter.default.addObserver(self, selector: #selector(handleBackspaceNotification), name: Coordinator.sendBackspaceNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleEnterNotification), name: Coordinator.sendEnterNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleUploadFilesNotification(_:)), name: Coordinator.uploadFilesNotification, object: nil)
-            NotificationCenter.default.addObserver(self, selector: #selector(handleF1Notification), name: Notification.Name("WebViewSendF1"), object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleFunctionKeyNotification(_:)), name: Notification.Name("WebViewSendFunctionKey"), object: nil)
         }
         
@@ -265,13 +260,8 @@ struct WebView: UIViewRepresentable {
         @objc private func handleEnterNotification() {
             sendEnter()
         }
-
-        @objc private func handleF1Notification() {
-            sendF1()
-        }
         
         @objc private func handleUploadFilesNotification(_ notification: Notification) {
-            guard let webView = self.webView else { return }
             
             // Extract files array of URLs either from notification.object or notification.userInfo["files"]
             let fileURLs: [URL]?
@@ -315,93 +305,13 @@ struct WebView: UIViewRepresentable {
             guard let jsonString = String(data: jsonData, encoding: .utf8) else { return }
     
             // JS to create File objects and send to appropriate handlers
-            let js = """
-            (function(){
-                function b64ToUint8Array(b64){
-                    const bin = atob(b64);
-                    const len = bin.length;
-                    const bytes = new Uint8Array(len);
-                    for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
-                    return bytes;
-                }
-
-                // Build File[] from descriptor array
-                var filesData = \(jsonString);
-                var fileObjs = filesData.map(function(f){
-                    var bytes = b64ToUint8Array(f.base64);
-                    var blob = new Blob([bytes], {type: f.mime});
-                    return new File([blob], f.name, {type: f.mime});
-                });
-
-                // 1) Explicit integration hook
-                if (typeof window.receiveNativeFiles === 'function') {
-                    try { window.receiveNativeFiles(fileObjs); return; } catch(_){}
-                }
-
-                // 2) Try to find a reasonable drop target commonly used by SPICE/VNC UIs
-                function findPrimaryTarget(){
-                    var selectors = [
-                        'canvas',
-                        '#spice-screen', '.spice-screen',
-                        '#display',
-                        '.noVNC_canvas', '#noVNC_canvas', 'canvas#noVNC_canvas',
-                        '[data-drop-zone]', '.dropzone', '#dropzone'
-                    ];
-                    for (var i = 0; i < selectors.length; i++){
-                        var el = document.querySelector(selectors[i]);
-                        if (el) return el;
-                    }
-                    return document.body;
-                }
-
-                var target = findPrimaryTarget();
-
-                // 3) Create a DataTransfer and attach Files
-                var dataTransfer = new DataTransfer();
-                fileObjs.forEach(function(file){ dataTransfer.items.add(file); });
-
-                // 4) Helper to create proper DragEvent with dataTransfer
-                function createDragEvent(type, dt){
-                    var evt;
-                    try {
-                        evt = new DragEvent(type, {
-                            bubbles: true,
-                            cancelable: true,
-                            composed: true,
-                            dataTransfer: dt
-                        });
-                    } catch (e) {
-                        // Safari fallback: construct then assign
-                        evt = document.createEvent('DragEvent');
-                        evt.initEvent(type, true, true);
-                        try { Object.defineProperty(evt, 'dataTransfer', { value: dt }); } catch(_){ evt.dataTransfer = dt; }
-                    }
-                    return evt;
-                }
-
-                function dispatchDragSequence(el, dt){
-                    var enter = createDragEvent('dragenter', dt);
-                    var over  = createDragEvent('dragover', dt);
-                    var drop  = createDragEvent('drop', dt);
-                    el.dispatchEvent(enter);
-                    el.dispatchEvent(over);
-                    el.dispatchEvent(drop);
-                }
-
-                // 5) Give the page a tick to attach listeners if needed, then dispatch
-                requestAnimationFrame(function(){
-                    try { dispatchDragSequence(target, dataTransfer); } catch(_){ }
-                });
-
-                // 6) Fallback: try a visible file input (cannot set files programmatically for security, but we can at least click)
-                var fileInput = document.querySelector('input[type=file]:not([disabled])');
-                if (fileInput && typeof fileInput.click === 'function') {
-                    try { fileInput.focus(); fileInput.click(); } catch(_){ }
-                }
-            })();
-            """
             
-            webView.evaluateJavaScript(js, completionHandler: nil)
+            guard self.webView != nil else { return }
+
+            guard let webView = self.webView else { return }
+            let js = JSLoader(fileName: "fileUplaod", swiftVar: jsonString)
+ 
+            webView.evaluateJavaScript(js.source, completionHandler: nil)
         }
         
         func sendBackspace() {
@@ -415,60 +325,6 @@ struct WebView: UIViewRepresentable {
             guard let webView = self.webView else { return }
             let js = JSLoader(fileName: "sendEnter")
             webView.evaluateJavaScript(js.source, completionHandler: nil)
-        }
-
-        func sendF1() {
-            guard let webView = self.webView else { return }
-            let js = """
-            (function(){
-                function focusTarget(el){
-                    try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
-                    try { el.focus(); } catch(_) {}
-                }
-                function findTarget(){
-                    var canvas = document.querySelector('canvas');
-                    if (canvas) return canvas;
-                    var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
-                    return el || document.body;
-                }
-                function dispatchKey(el, type, key, code, keyCode){
-                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
-                    try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
-                    try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
-                    el.dispatchEvent(evt);
-                }
-                function sendViaAPI(){
-                    try {
-                        if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKeyCode === 'function') {
-                            // Common F1 keycode in many systems is 112
-                            window.SpiceKeyboard.sendKeyCode(112);
-                            return true;
-                        }
-                    } catch(_){}
-                    try {
-                        if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown === 'function' && typeof window.rfb._keyboard.keyUp === 'function') {
-                            // noVNC keyboard API
-                            window.rfb._keyboard.keyDown({keysym: 0xFFBE}); // XK_F1
-                            window.rfb._keyboard.keyUp({keysym: 0xFFBE});
-                            return true;
-                        }
-                    } catch(_){}
-                    return false;
-                }
-                var target = findTarget();
-                focusTarget(target);
-                var sent = sendViaAPI();
-                if (!sent) {
-                    // Fallback to DOM KeyboardEvents
-                    var key = 'F1';
-                    var code = 'F1';
-                    var keyCode = 112;
-                    dispatchKey(target, 'keydown', key, code, keyCode);
-                    dispatchKey(target, 'keyup', key, code, keyCode);
-                }
-            })();
-            """
-            webView.evaluateJavaScript(js, completionHandler: nil)
         }
 
         @objc private func handleFunctionKeyNotification(_ notification: Notification) {
@@ -735,8 +591,6 @@ struct WebView: UIViewRepresentable {
     }
     
 }
-
-
 
 
 // Xcode preview

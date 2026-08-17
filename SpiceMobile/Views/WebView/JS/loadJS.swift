@@ -9,25 +9,31 @@
 import SwiftUI
 import WebKit
 
-
-// load js file and return WKUserScript
-func JSLoader(fileName: String) -> WKUserScript  {
+// Load JS file and return WKUserScript
+func JSLoader(fileName: String, swiftVar: String? = nil) -> WKUserScript {
+    
     if let path = Bundle.main.path(forResource: fileName, ofType: "js"),
-       let jsString = try? String(contentsOfFile: path, encoding: .utf8) {
-        let userScript = WKUserScript(
+       var jsString = try? String(contentsOfFile: path, encoding: .utf8) {
+        
+        // Optional replacement
+           if let swiftVar = swiftVar {
+            jsString = jsString.replacingOccurrences(
+                of: "__SWIFT_VALUE__",
+                with: swiftVar
+            )
+        }
+        
+        return WKUserScript(
             source: jsString,
             injectionTime: .atDocumentEnd,
             forMainFrameOnly: false
         )
-        return userScript
     }
 
-    // Fallback: return an empty script so the function always returns a value
-    let emptyScript = WKUserScript(
+    // Fallback
+    return WKUserScript(
         source: "",
         injectionTime: .atDocumentEnd,
         forMainFrameOnly: false
     )
-    return emptyScript
 }
-
