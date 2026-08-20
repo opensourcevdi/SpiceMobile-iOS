@@ -139,6 +139,7 @@ struct WebView: UIViewRepresentable {
         let webView = makeConfiguredWebView(context: context)
         
         context.coordinator.webView = webView
+        DispatchQueue.main.async { context.coordinator.clearModifiers() }
 
         // Optional: Scroll und Zoom konfigurieren
             webView.scrollView.bounces = false
@@ -238,6 +239,22 @@ struct WebView: UIViewRepresentable {
         private static let sendBackspaceNotification = Notification.Name("WebViewSendBackspace")
         private static let sendEnterNotification = Notification.Name("WebViewSendEnter")
         private static let uploadFilesNotification = Notification.Name("WebViewUploadFiles")
+        
+        private static let toggleShiftNotification = Notification.Name("WebViewToggleShift")
+        private static let toggleControlNotification = Notification.Name("WebViewToggleControl")
+        private static let toggleOptionNotification = Notification.Name("WebViewToggleOption")
+        private static let toggleCommandNotification = Notification.Name("WebViewToggleCommand")
+        private static let clearModifiersNotification = Notification.Name("WebViewClearModifiers")
+        private static let setModifiersNotification = Notification.Name("WebViewSetModifiers")
+
+        private static let sendArrowNotification = Notification.Name("WebViewSendArrowKey")
+        private static let sendTabNotification = Notification.Name("WebViewSendTab")
+        private static let sendSuperNotification = Notification.Name("WebViewSendSuper")
+        
+        var shiftActive: Bool = false
+        var controlActive: Bool = false
+        var optionActive: Bool = false
+        var commandActive: Bool = false
 
         init(parent: WebView) {
             self.parent = parent
@@ -247,6 +264,17 @@ struct WebView: UIViewRepresentable {
             NotificationCenter.default.addObserver(self, selector: #selector(handleEnterNotification), name: Coordinator.sendEnterNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleUploadFilesNotification(_:)), name: Coordinator.uploadFilesNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleFunctionKeyNotification(_:)), name: Notification.Name("WebViewSendFunctionKey"), object: nil)
+            
+            NotificationCenter.default.addObserver(self, selector: #selector(handleToggleShift), name: Coordinator.toggleShiftNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleToggleControl), name: Coordinator.toggleControlNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleToggleOption), name: Coordinator.toggleOptionNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleToggleCommand), name: Coordinator.toggleCommandNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleClearModifiers), name: Coordinator.clearModifiersNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleSetModifiers(_:)), name: Coordinator.setModifiersNotification, object: nil)
+            
+            NotificationCenter.default.addObserver(self, selector: #selector(handleArrowKeyNotification(_:)), name: Coordinator.sendArrowNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleSendTab), name: Coordinator.sendTabNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(handleSendSuper), name: Coordinator.sendSuperNotification, object: nil)
         }
         
         deinit {
@@ -337,9 +365,50 @@ struct WebView: UIViewRepresentable {
             guard let num = n, (1...12).contains(num) else { return }
             sendFunctionKey(num)
         }
+        
+        @objc private func handleToggleShift() { shiftActive.toggle(); applyModifierStateToPage() }
+        @objc private func handleToggleControl() { controlActive.toggle(); applyModifierStateToPage() }
+        @objc private func handleToggleOption() { optionActive.toggle(); applyModifierStateToPage() }
+        @objc private func handleToggleCommand() { commandActive.toggle(); applyModifierStateToPage() }
+        @objc private func handleClearModifiers() { shiftActive = false; controlActive = false; optionActive = false; commandActive = false; applyModifierStateToPage() }
+        @objc private func handleSetModifiers(_ note: Notification) {
+            if let info = note.userInfo {
+                if let s = info["shift"] as? Bool { shiftActive = s }
+                if let c = info["control"] as? Bool { controlActive = c }
+                if let o = info["option"] as? Bool { optionActive = o }
+                if let m = info["command"] as? Bool { commandActive = m }
+            }
+            applyModifierStateToPage()
+        }
+        
+        @objc private func handleArrowKeyNotification(_ notification: Notification) {
+            // Expect direction in object or userInfo["direction"]: "up","down","left","right"
+            var dir: String? = nil
+            if let s = notification.object as? String { dir = s }
+            else if let s = notification.userInfo?["direction"] as? String { dir = s }
+            guard let direction = dir else { return }
+            sendArrowKey(direction)
+        }
+        @objc private func handleSendTab() { sendTabKey() }
+        @objc private func handleSendSuper() { sendSuperKey() }
+        
+        private func applyModifierStateToPage() {
+            guard let webView = self.webView else { return }
+            // Expose modifier state globally so injected key events can use it
+            let shift = shiftActive ? "true" : "false"
+            let ctrl = controlActive ? "true" : "false"
+            let alt = optionActive ? "true" : "false"
+            let meta = commandActive ? "true" : "false"
+            let finalJS = "(function(){ window.__iosModifiers = window.__iosModifiers || {}; window.__iosModifiers.shift = \(shift); window.__iosModifiers.ctrl = \(ctrl); window.__iosModifiers.alt = \(alt); window.__iosModifiers.meta = \(meta); })();"
+            webView.evaluateJavaScript(finalJS, completionHandler: nil)
+        }
 
         func sendFunctionKey(_ n: Int) {
             guard let webView = self.webView else { return }
+            let shift = shiftActive ? "true" : "false"
+            let ctrl = controlActive ? "true" : "false"
+            let alt = optionActive ? "true" : "false"
+            let meta = commandActive ? "true" : "false"
             let js = """
             (function(){
                 function focusTarget(el){
@@ -352,25 +421,62 @@ struct WebView: UIViewRepresentable {
                     var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
                     return el || document.body;
                 }
-                function dispatchKey(el, type, key, code, keyCode){
-                    var evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: code, composed: true });
+                function dispatchKey(el, type, key, code, keyCode, mods){
+                    var evt = new KeyboardEvent(type, {
+                        bubbles: true,
+                        cancelable: true,
+                        key: key,
+                        code: code,
+                        composed: true,
+                        shiftKey: !!mods.shift,
+                        ctrlKey: !!mods.ctrl,
+                        altKey: !!mods.alt,
+                        metaKey: !!mods.meta
+                    });
                     try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){ }
                     try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){ }
                     el.dispatchEvent(evt);
                 }
-                function sendViaAPI(n){
+                function getMods(){
+                    var m = (typeof window.__iosModifiers === 'object' && window.__iosModifiers) || {};
+                    return { shift: !!m.shift || \(shift), ctrl: !!m.ctrl || \(ctrl), alt: !!m.alt || \(alt), meta: !!m.meta || \(meta) };
+                }
+                function sendViaAPI(n, mods){
+                    // Try SPICE first
                     try {
                         if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendKeyCode === 'function') {
-                            window.SpiceKeyboard.sendKeyCode(112 + (n - 1)); // 112 = F1
+                            // If Spice supports modifiers, try to send modifier presses around the key
+                            // F1 base 112
+                            var keycode = 112 + (n - 1);
+                            // Try modifier down
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(16); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(17); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(18); } catch(_){}
+                            try { if (mods.meta && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(91); } catch(_){}
+                            window.SpiceKeyboard.sendKeyCode(keycode);
+                            // Modifier up
+                            try { if (mods.meta && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(91); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(18); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(17); } catch(_){}
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(16); } catch(_){}
                             return true;
                         }
                     } catch(_){ }
+                    // Try noVNC API
                     try {
                         if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown === 'function' && typeof window.rfb._keyboard.keyUp === 'function') {
+                            function modDown(up){
+                                try { if (mods.shift) window.rfb._keyboard[up ? 'keyUp' : 'keyDown']({ keysym: 0xFFE1 }); } catch(_){}
+                                try { if (mods.ctrl) window.rfb._keyboard[up ? 'keyUp' : 'keyDown']({ keysym: 0xFFE3 }); } catch(_){}
+                                try { if (mods.alt) window.rfb._keyboard[up ? 'keyUp' : 'keyDown']({ keysym: 0xFFE9 }); } catch(_){}
+                                try { if (mods.meta) window.rfb._keyboard[up ? 'keyUp' : 'keyDown']({ keysym: 0xFFE7 }); } catch(_){}
+                            }
                             var base = 0xFFBE; // XK_F1
                             var keysym = base + (n - 1);
-                            window.rfb._keyboard.keyDown({keysym: keysym});
-                            window.rfb._keyboard.keyUp({keysym: keysym});
+                            modDown(false);
+                            window.rfb._keyboard.keyDown({ keysym: keysym });
+                            window.rfb._keyboard.keyUp({ keysym: keysym });
+                            modDown(true);
                             return true;
                         }
                     } catch(_){ }
@@ -379,12 +485,206 @@ struct WebView: UIViewRepresentable {
                 var target = findTarget();
                 focusTarget(target);
                 var n = \(n);
-                var sent = sendViaAPI(n);
+                var mods = getMods();
+                var sent = sendViaAPI(n, mods);
                 if (!sent) {
                     var keyName = 'F' + String(n);
                     var keyCode = 111 + n; // 112..123
-                    dispatchKey(target, 'keydown', keyName, keyName, keyCode);
-                    dispatchKey(target, 'keyup', keyName, keyName, keyCode);
+                    dispatchKey(target, 'keydown', keyName, keyName, keyCode, mods);
+                    dispatchKey(target, 'keyup', keyName, keyName, keyCode, mods);
+                }
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+        
+        func sendArrowKey(_ direction: String) {
+            guard let webView = self.webView else { return }
+            let shift = shiftActive ? "true" : "false"
+            let ctrl = controlActive ? "true" : "false"
+            let alt = optionActive ? "true" : "false"
+            let meta = commandActive ? "true" : "false"
+            let js = """
+            (function(){
+                function focusTarget(el){ try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_){} try { el.focus(); } catch(_){} }
+                function findTarget(){ var c=document.querySelector('canvas'); if(c) return c; var el=document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas'); return el||document.body; }
+                function dispatchKey(el, type, key, code, keyCode, mods){
+                    var evt = new KeyboardEvent(type, { bubbles:true, cancelable:true, key:key, code:code, composed:true, shiftKey:!!mods.shift, ctrlKey:!!mods.ctrl, altKey:!!mods.alt, metaKey:!!mods.meta });
+                    try{ Object.defineProperty(evt,'keyCode',{ get:function(){ return keyCode; } }); }catch(_){ }
+                    try{ Object.defineProperty(evt,'which',{ get:function(){ return keyCode; } }); }catch(_){ }
+                    el.dispatchEvent(evt);
+                }
+                function getMods(){ var m=(typeof window.__iosModifiers==='object' && window.__iosModifiers)||{}; return { shift:!!m.shift || \(shift), ctrl:!!m.ctrl || \(ctrl), alt:!!m.alt || \(alt), meta:!!m.meta || \(meta) }; }
+                function spiceVKForArrow(dir){ return dir==='up'?38:dir==='down'?40:dir==='left'?37:39; }
+                function sendViaSpice(dir, mods){
+                    try {
+                        if (window.SpiceKeyboard && (window.SpiceKeyboard.sendKeyDown || window.SpiceKeyboard.sendKeyUp)) {
+                            var vk = spiceVKForArrow(dir);
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(16); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(17); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(18); } catch(_){}
+                            try { if (mods.meta && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(91); } catch(_){}
+                            try { if (window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(vk); } catch(_){}
+                            try { if (window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(vk); } catch(_){}
+                            try { if (mods.meta && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(91); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(18); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(17); } catch(_){}
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(16); } catch(_){}
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                function sendViaNoVNC(dir, mods){
+                    try {
+                        if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown==='function' && typeof window.rfb._keyboard.keyUp==='function') {
+                            function mod(up){ try{ if(mods.shift) window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE1}); }catch(_){ }
+                                              try{ if(mods.ctrl)  window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE3}); }catch(_){}
+                                              try{ if(mods.alt)   window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE9}); }catch(_){}
+                                              try{ if(mods.meta)  window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE7}); }catch(_){ } }
+                            var map = { up:0xFF52, down:0xFF54, left:0xFF51, right:0xFF53 };
+                            var ks = map[dir]; if (!ks) return false;
+                            mod(false);
+                            window.rfb._keyboard.keyDown({keysym: ks});
+                            window.rfb._keyboard.keyUp({keysym: ks});
+                            mod(true);
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                var target = findTarget(); focusTarget(target);
+                var mods = getMods();
+                var dir = "__DIR__";
+                var sent = sendViaSpice(dir, mods) || sendViaNoVNC(dir, mods);
+                if (!sent) {
+                    var map = { up:{key:'ArrowUp', code:'ArrowUp', keyCode:38}, down:{key:'ArrowDown', code:'ArrowDown', keyCode:40}, left:{key:'ArrowLeft', code:'ArrowLeft', keyCode:37}, right:{key:'ArrowRight', code:'ArrowRight', keyCode:39} };
+                    var info = map[dir]; if (!info) return;
+                    dispatchKey(target,'keydown', info.key, info.code, info.keyCode, mods);
+                    dispatchKey(target,'keyup',   info.key, info.code, info.keyCode, mods);
+                }
+            })();
+            """
+            .replacingOccurrences(of: "__DIR__", with: direction)
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        func sendTabKey() {
+            guard let webView = self.webView else { return }
+            let shift = shiftActive ? "true" : "false"
+            let ctrl = controlActive ? "true" : "false"
+            let alt = optionActive ? "true" : "false"
+            let meta = commandActive ? "true" : "false"
+            let js = """
+            (function(){
+                function focusTarget(el){ try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_){} try { el.focus(); } catch(_){} }
+                function findTarget(){ var c=document.querySelector('canvas'); if(c) return c; var el=document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas'); return el||document.body; }
+                function dispatchKey(el, type, key, code, keyCode, mods){
+                    var evt = new KeyboardEvent(type, { bubbles:true, cancelable:true, key:key, code:code, composed:true, shiftKey:!!mods.shift, ctrlKey:!!mods.ctrl, altKey:!!mods.alt, metaKey:!!mods.meta });
+                    try{ Object.defineProperty(evt,'keyCode',{ get:function(){ return keyCode; } }); }catch(_){ }
+                    try{ Object.defineProperty(evt,'which',{ get:function(){ return keyCode; } }); }catch(_){ }
+                    el.dispatchEvent(evt);
+                }
+                function getMods(){ var m=(typeof window.__iosModifiers==='object' && window.__iosModifiers)||{}; return { shift:!!m.shift || \(shift), ctrl:!!m.ctrl || \(ctrl), alt:!!m.alt || \(alt), meta:!!m.meta || \(meta) }; }
+                function sendViaSpice(mods){
+                    try {
+                        if (window.SpiceKeyboard && (window.SpiceKeyboard.sendKeyDown || window.SpiceKeyboard.sendKeyUp)) {
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(16); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(17); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(18); } catch(_){}
+                            try { if (mods.meta && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(91); } catch(_){}
+                            try { if (window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(9); } catch(_){}
+                            try { if (window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(9); } catch(_){}
+                            try { if (mods.meta && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(91); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(18); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(17); } catch(_){}
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(16); } catch(_){}
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                function sendViaNoVNC(mods){
+                    try {
+                        if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown==='function' && typeof window.rfb._keyboard.keyUp==='function') {
+                            function mod(up){ try{ if(mods.shift) window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE1}); }catch(_){}
+                                              try{ if(mods.ctrl)  window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE3}); }catch(_){}
+                                              try{ if(mods.alt)   window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE9}); }catch(_){}
+                                              try{ if(mods.meta)  window.rfb._keyboard[up?'keyUp':'keyDown']({keysym:0xFFE7}); }catch(_){} }
+                            mod(false);
+                            window.rfb._keyboard.keyDown({keysym: 0xFF09});
+                            window.rfb._keyboard.keyUp({keysym: 0xFF09});
+                            mod(true);
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                var target = findTarget(); focusTarget(target);
+                var mods = getMods();
+                var sent = sendViaSpice(mods) || sendViaNoVNC(mods);
+                if (!sent) {
+                    var key = 'Tab', code = 'Tab', keyCode = 9;
+                    dispatchKey(target,'keydown', key, code, keyCode, mods);
+                    dispatchKey(target,'keyup',   key, code, keyCode, mods);
+                }
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        func sendSuperKey() {
+            guard let webView = self.webView else { return }
+            let shift = shiftActive ? "true" : "false"
+            let ctrl = controlActive ? "true" : "false"
+            let alt = optionActive ? "true" : "false"
+            let meta = commandActive ? "true" : "false"
+            let js = """
+            (function(){
+                function focusTarget(el){ try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_){} try { el.focus(); } catch(_){} }
+                function findTarget(){ var c=document.querySelector('canvas'); if(c) return c; var el=document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas'); return el||document.body; }
+                function dispatchKey(el, type, key, code, keyCode, mods){
+                    var evt = new KeyboardEvent(type, { bubbles:true, cancelable:true, key:key, code:code, composed:true, shiftKey:!!mods.shift, ctrlKey:!!mods.ctrl, altKey:!!mods.alt, metaKey:!!mods.meta });
+                    try{ Object.defineProperty(evt,'keyCode',{ get:function(){ return keyCode; } }); }catch(_){ }
+                    try{ Object.defineProperty(evt,'which',{ get:function(){ return keyCode; } }); }catch(_){ }
+                    el.dispatchEvent(evt);
+                }
+                function getMods(){ var m=(typeof window.__iosModifiers==='object' && window.__iosModifiers)||{}; return { shift:!!m.shift || \(shift), ctrl:!!m.ctrl || \(ctrl), alt:!!m.alt || \(alt), meta:!!m.meta || \(meta) }; }
+                function sendViaSpice(mods){
+                    try {
+                        if (window.SpiceKeyboard && (window.SpiceKeyboard.sendKeyDown || window.SpiceKeyboard.sendKeyUp)) {
+                            // Press and release the Windows key (VK_LWIN ~ 91)
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(16); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(17); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(18); } catch(_){}
+                            try { if (window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(91); } catch(_){}
+                            try { if (window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(91); } catch(_){}
+                            try { if (mods.alt && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(18); } catch(_){}
+                            try { if (mods.ctrl && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(17); } catch(_){}
+                            try { if (mods.shift && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(16); } catch(_){}
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                function sendViaNoVNC(mods){
+                    try {
+                        if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyDown==='function' && typeof window.rfb._keyboard.keyUp==='function') {
+                            // Super_L keysym 0xFFEB
+                            window.rfb._keyboard.keyDown({keysym: 0xFFEB});
+                            window.rfb._keyboard.keyUp({keysym: 0xFFEB});
+                            return true;
+                        }
+                    } catch(_){ }
+                    return false;
+                }
+                var target = findTarget(); focusTarget(target);
+                var mods = getMods();
+                var sent = sendViaSpice(mods) || sendViaNoVNC(mods);
+                if (!sent) {
+                    var key = 'Meta'; var code = 'MetaLeft'; var keyCode = 91;
+                    dispatchKey(target,'keydown', key, code, keyCode, mods);
+                    dispatchKey(target,'keyup',   key, code, keyCode, mods);
                 }
             })();
             """
@@ -411,63 +711,76 @@ struct WebView: UIViewRepresentable {
                     var el = document.querySelector('#spice-screen, .spice-screen, #display, .noVNC_canvas, #noVNC_canvas');
                     return el || document.body;
                   }
-
                   function focusTarget(el){
                     try { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0'); } catch(_) {}
                     try { el.focus(); } catch(_) {}
                   }
-
-                  function dispatchKey(el, type, key, code, keyCode){
+                  function dispatchKey(el, type, key, code, keyCode, mods){
                     var evt = new KeyboardEvent(type, {
                       bubbles: true,
                       cancelable: true,
                       key: key,
                       code: code,
-                      composed: true
+                      composed: true,
+                      shiftKey: !!mods.shift,
+                      ctrlKey: !!mods.ctrl,
+                      altKey: !!mods.alt,
+                      metaKey: !!mods.meta
                     });
-
                     try { Object.defineProperty(evt, 'keyCode', { get: function(){ return keyCode; } }); } catch(_){}
                     try { Object.defineProperty(evt, 'which', { get: function(){ return keyCode; } }); } catch(_){}
                     try { Object.defineProperty(evt, 'charCode', { get: function(){ return keyCode; } }); } catch(_){}
-
                     el.dispatchEvent(evt);
                   }
-
-                  function sendViaSpiceAPIChar(ch){
+                  function sendViaSpiceAPIChar(ch, mods){
                     try {
                       if (window.SpiceKeyboard && typeof window.SpiceKeyboard.sendChar === 'function') {
+                        // Attempt to hold modifiers around char if supported
+                        try { if (mods.shift && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(16); } catch(_){}
+                        try { if (mods.ctrl && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(17); } catch(_){}
+                        try { if (mods.alt && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(18); } catch(_){}
+                        try { if (mods.meta && window.SpiceKeyboard.sendKeyDown) window.SpiceKeyboard.sendKeyDown(91); } catch(_){}
                         window.SpiceKeyboard.sendChar(ch);
+                        try { if (mods.meta && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(91); } catch(_){}
+                        try { if (mods.alt && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(18); } catch(_){}
+                        try { if (mods.ctrl && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(17); } catch(_){}
+                        try { if (mods.shift && window.SpiceKeyboard.sendKeyUp) window.SpiceKeyboard.sendKeyUp(16); } catch(_){}
                         return true;
                       }
-                    } catch(_){}
-
+                    } catch(_){ }
                     try {
                       if (window.rfb && window.rfb._keyboard && typeof window.rfb._keyboard.keyPress === 'function') {
+                        // noVNC keyPress doesn't take modifiers directly; try modifier down/up around it
+                        function modDown(up){
+                          try { if (mods.shift) window.rfb._keyboard[up?'keyUp':'keyDown']({keysym: 0xFFE1}); } catch(_){}
+                          try { if (mods.ctrl) window.rfb._keyboard[up?'keyUp':'keyDown']({keysym: 0xFFE3}); } catch(_){}
+                          try { if (mods.alt) window.rfb._keyboard[up?'keyUp':'keyDown']({keysym: 0xFFE9}); } catch(_){}
+                          try { if (mods.meta) window.rfb._keyboard[up?'keyUp':'keyDown']({keysym: 0xFFE7}); } catch(_){}
+                        }
+                        modDown(false);
                         window.rfb._keyboard.keyPress(ch);
+                        modDown(true);
                         return true;
                       }
-                    } catch(_){}
-
+                    } catch(_){ }
                     return false;
                   }
-
+                  function getMods(){
+                    var m = (typeof window.__iosModifiers === 'object' && window.__iosModifiers) || {};
+                    return { shift: !!m.shift, ctrl: !!m.ctrl, alt: !!m.alt, meta: !!m.meta };
+                  }
                   var target = findSpiceTarget();
                   focusTarget(target);
-
                   var ch = "\(escaped)";
-
-                  // WICHTIG: Erst direkte Unicode-API versuchen
-                  var sent = sendViaSpiceAPIChar(ch);
-
-                  // Nur wenn API nicht existiert → ASCII Fallback
+                  var mods = getMods();
+                  var sent = sendViaSpiceAPIChar(ch, mods);
                   if (!sent && ch.length === 1 && ch.charCodeAt(0) < 128) {
                     var keyCode = ch.charCodeAt(0);
                     var code = 'Key' + ch.toUpperCase();
-                    dispatchKey(target, 'keydown', ch, code, keyCode);
-                    dispatchKey(target, 'keypress', ch, code, keyCode);
-                    dispatchKey(target, 'keyup', ch, code, keyCode);
+                    dispatchKey(target, 'keydown', ch, code, keyCode, mods);
+                    dispatchKey(target, 'keypress', ch, code, keyCode, mods);
+                    dispatchKey(target, 'keyup', ch, code, keyCode, mods);
                   }
-
                 })();
                 """
                 webView.evaluateJavaScript(js, completionHandler: nil)
@@ -541,6 +854,10 @@ struct WebView: UIViewRepresentable {
                 webView.evaluateJavaScript("window.enableTouchMouseBridge = false;") { _, _ in }
                 webView.evaluateJavaScript("window.touchMousePageZoom = 1.0;") { _, _ in }
             }
+            
+            DispatchQueue.main.async {
+                self.clearModifiers()
+            }
         }
 
         // Fehler beim endgültigen Laden
@@ -588,10 +905,28 @@ struct WebView: UIViewRepresentable {
                 }
             }
         }
+        
+        func clearModifiers() {
+            shiftActive = false; controlActive = false; optionActive = false; commandActive = false
+            applyModifierStateToPage()
+        }
     }
     
 }
 
+extension WebView.Coordinator {
+    static func toggleShift() { NotificationCenter.default.post(name: Notification.Name("WebViewToggleShift"), object: nil) }
+    static func toggleControl() { NotificationCenter.default.post(name: Notification.Name("WebViewToggleControl"), object: nil) }
+    static func toggleOption() { NotificationCenter.default.post(name: Notification.Name("WebViewToggleOption"), object: nil) }
+    static func toggleCommand() { NotificationCenter.default.post(name: Notification.Name("WebViewToggleCommand"), object: nil) }
+    static func clearModifiers() { NotificationCenter.default.post(name: Notification.Name("WebViewClearModifiers"), object: nil) }
+    static func setModifiers(shift: Bool, control: Bool, option: Bool, command: Bool) {
+        NotificationCenter.default.post(name: Notification.Name("WebViewSetModifiers"), object: nil, userInfo: ["shift": shift, "control": control, "option": option, "command": command])
+    }
+    static func sendArrow(_ direction: String) { NotificationCenter.default.post(name: Notification.Name("WebViewSendArrowKey"), object: direction) }
+    static func sendTab() { NotificationCenter.default.post(name: Notification.Name("WebViewSendTab"), object: nil) }
+    static func sendSuper() { NotificationCenter.default.post(name: Notification.Name("WebViewSendSuper"), object: nil) }
+}
 
 // Xcode preview
 #Preview {
