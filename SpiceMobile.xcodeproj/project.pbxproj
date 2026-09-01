@@ -32,6 +32,9 @@
 		69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */; };
 		69DB11F52F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11EE2F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard */; };
 		69DB11F72F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */; };
+		69DBD64C304776150021A9EA /* ExternalDisplaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DBD64B304776100021A9EA /* ExternalDisplaySceneDelegate.swift */; };
+		69DBD64D304776150021A9EA /* ExternalDisplaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DBD64B304776100021A9EA /* ExternalDisplaySceneDelegate.swift */; };
+		69DBD64F30477DC50021A9EA /* OSVDIClient-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 69DBD64E30477DC50021A9EA /* OSVDIClient-Info.plist */; };
 		69EDD2342F642B090008D85D /* SpiceMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2312F6426100008D85D /* SpiceMobileApp.swift */; };
 		69EDD2362F642B870008D85D /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22E2F6426100008D85D /* WebView.swift */; };
 		69EDD2372F642B8B0008D85D /* VMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* VMView.swift */; };
@@ -44,7 +47,6 @@
 		6940CEC62F69EF71003F9516 /* touchToMouseScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = touchToMouseScript.js; sourceTree = "<group>"; };
 		6940CECF2F69FA25003F9516 /* loadJS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = loadJS.swift; sourceTree = "<group>"; };
 		696151442F6C6D180038A4A7 /* bwLP Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "bwLP Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		697921AB301C9FEC00295DFA /* bugs.txt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = bugs.txt.swift; sourceTree = "<group>"; };
 		697921B0301CAD2700295DFA /* fileUplaod.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = fileUplaod.js; sourceTree = "<group>"; };
 		69834CED300978C900A7048A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6989BD653013A93800DF8BDB /* DocumentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerView.swift; sourceTree = "<group>"; };
@@ -53,6 +55,9 @@
 		69C636D22EDE01610041D875 /* OSVDIClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OSVDIClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		69DB11EE2F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "bwLP-Remote-LaunchScreen.storyboard"; sourceTree = "<group>"; };
 		69DB11F02F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "OSVDIClient-LaunchScreen.storyboard"; sourceTree = "<group>"; };
+		69DBD64B304776100021A9EA /* ExternalDisplaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalDisplaySceneDelegate.swift; sourceTree = "<group>"; };
+		69DBD64E30477DC50021A9EA /* OSVDIClient-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OSVDIClient-Info.plist"; sourceTree = "<group>"; };
+		69DBD65030477E0C0021A9EA /* bwLP-Remote-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "bwLP-Remote-Info.plist"; sourceTree = "<group>"; };
 		69EDD2242F6426100008D85D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		69EDD22B2F6426100008D85D /* EnhancedTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedTextField.swift; sourceTree = "<group>"; };
 		69EDD22D2F6426100008D85D /* VMView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMView.swift; sourceTree = "<group>"; };
@@ -137,7 +142,8 @@
 		69C636C92EDE01610041D875 = {
 			isa = PBXGroup;
 			children = (
-				697921AB301C9FEC00295DFA /* bugs.txt.swift */,
+				69DBD65030477E0C0021A9EA /* bwLP-Remote-Info.plist */,
+				69DBD64E30477DC50021A9EA /* OSVDIClient-Info.plist */,
 				69EDD2322F6426100008D85D /* SpiceMobile */,
 				69C636D32EDE01610041D875 /* Products */,
 			);
@@ -181,6 +187,7 @@
 		69EDD22F2F6426100008D85D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				69DBD64B304776100021A9EA /* ExternalDisplaySceneDelegate.swift */,
 				6989BD6D3013B04600DF8BDB /* VMView */,
 				6976B5392F69EAAE00DB652E /* WebView */,
 				69834CED300978C900A7048A /* ContentView.swift */,
@@ -307,6 +314,7 @@
 				69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
 				69975F5B2FC47F0100F9B4A0 /* sendEnter.js in Resources */,
 				697921B2301CAD2E00295DFA /* fileUplaod.js in Resources */,
+				69DBD64F30477DC50021A9EA /* OSVDIClient-Info.plist in Resources */,
 				6940CEC72F69EF75003F9516 /* touchToMouseScript.js in Resources */,
 				6940CEC52F69EF61003F9516 /* disableSelectionScript.js in Resources */,
 			);
@@ -319,6 +327,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69DBD64D304776150021A9EA /* ExternalDisplaySceneDelegate.swift in Sources */,
 				69DB11EC2F6CA40800266234 /* SpiceMobileApp.swift in Sources */,
 				69DB11E92F6CA3FE00266234 /* loadJS.swift in Sources */,
 				69834CEF300978C900A7048A /* ContentView.swift in Sources */,
@@ -334,6 +343,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69DBD64C304776150021A9EA /* ExternalDisplaySceneDelegate.swift in Sources */,
 				6940CED02F69FA29003F9516 /* loadJS.swift in Sources */,
 				69EDD23B2F642BB80008D85D /* Assets.xcassets in Sources */,
 				69834CEE300978C900A7048A /* ContentView.swift in Sources */,
@@ -358,7 +368,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = "bwLP-Remote-Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = "bwLP-Remote-LaunchScreen.storyboard";
@@ -393,7 +403,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = "bwLP-Remote-Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = "bwLP-Remote-LaunchScreen.storyboard";
@@ -550,7 +560,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = "OSVDIClient-Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = "OSVDIClient-LaunchScreen.storyboard";
@@ -584,7 +594,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = "OSVDIClient-Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = "OSVDIClient-LaunchScreen.storyboard";
