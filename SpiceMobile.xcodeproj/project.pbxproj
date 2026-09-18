@@ -20,6 +20,8 @@
 		69834CEF300978C900A7048A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69834CED300978C900A7048A /* ContentView.swift */; };
 		6989BD663013A93800DF8BDB /* DocumentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6989BD653013A93800DF8BDB /* DocumentPickerView.swift */; };
 		6989BD673013A93800DF8BDB /* DocumentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6989BD653013A93800DF8BDB /* DocumentPickerView.swift */; };
+		6991EF6A305D86E200E71021 /* ConnectionToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6991EF69305D86D400E71021 /* ConnectionToast.swift */; };
+		6991EF6B305D86E200E71021 /* ConnectionToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6991EF69305D86D400E71021 /* ConnectionToast.swift */; };
 		69975F592FC47EF000F9B4A0 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
 		69975F5B2FC47F0100F9B4A0 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
 		69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2242F6426100008D85D /* Assets.xcassets */; };
@@ -50,6 +52,7 @@
 		697921B0301CAD2700295DFA /* fileUplaod.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = fileUplaod.js; sourceTree = "<group>"; };
 		69834CED300978C900A7048A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6989BD653013A93800DF8BDB /* DocumentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerView.swift; sourceTree = "<group>"; };
+		6991EF69305D86D400E71021 /* ConnectionToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionToast.swift; sourceTree = "<group>"; };
 		69975F582FC47EE900F9B4A0 /* sendBackspace.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendBackspace.js; sourceTree = "<group>"; };
 		69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendEnter.js; sourceTree = "<group>"; };
 		69C636D22EDE01610041D875 /* OSVDIClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OSVDIClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -133,6 +136,7 @@
 		6989BD6D3013B04600DF8BDB /* VMView */ = {
 			isa = PBXGroup;
 			children = (
+				6991EF69305D86D400E71021 /* ConnectionToast.swift */,
 				69EDD22D2F6426100008D85D /* VMView.swift */,
 				6989BD653013A93800DF8BDB /* DocumentPickerView.swift */,
 			);
@@ -333,6 +337,7 @@
 				69834CEF300978C900A7048A /* ContentView.swift in Sources */,
 				6989BD663013A93800DF8BDB /* DocumentPickerView.swift in Sources */,
 				69DB11E72F6CA3FB00266234 /* WebView.swift in Sources */,
+				6991EF6B305D86E200E71021 /* ConnectionToast.swift in Sources */,
 				69DB11E52F6CA3EF00266234 /* EnhancedTextField.swift in Sources */,
 				69DB11E42F6CA3EC00266234 /* VMView.swift in Sources */,
 				69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */,
@@ -349,6 +354,7 @@
 				69834CEE300978C900A7048A /* ContentView.swift in Sources */,
 				6989BD673013A93800DF8BDB /* DocumentPickerView.swift in Sources */,
 				69EDD2392F642B930008D85D /* EnhancedTextField.swift in Sources */,
+				6991EF6A305D86E200E71021 /* ConnectionToast.swift in Sources */,
 				69EDD2372F642B8B0008D85D /* VMView.swift in Sources */,
 				69EDD2362F642B870008D85D /* WebView.swift in Sources */,
 				69EDD2342F642B090008D85D /* SpiceMobileApp.swift in Sources */,

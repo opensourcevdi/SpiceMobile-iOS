@@ -32,7 +32,7 @@ struct SpiceMobileClient: App {
                         hasInitializedCursorSpeed = true
                     }
                 }
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
 
         }
     }
