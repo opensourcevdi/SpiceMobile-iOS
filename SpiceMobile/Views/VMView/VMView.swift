@@ -19,6 +19,7 @@ enum VMConnectionQuality: String, Codable {
 // MARK: - ContentView
 struct VMView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var networkMonitor = NetworkMonitor()
     @State private var showConnectionToast = false
     @State private var connectionToastTask: Task<Void, Never>?
     @State private var animate = false
@@ -65,28 +66,7 @@ struct VMView: View {
                 Color.white.ignoresSafeArea()
                 ZStack {
                     
-                    WebView(urlString: currentURL?.absoluteString ?? "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer, connectionQuality: Binding<WebView.ConnectionQuality>(
-                        get: {
-                            switch connectionQuality {
-                            case .good:
-                                return .good
-                            case .slow:
-                                return .slow
-                            case .bad:
-                                return .bad
-                            }
-                        },
-                        set: { newValue in
-                            switch newValue {
-                            case .good:
-                                connectionQuality = .good
-                            case .slow:
-                                connectionQuality = .slow
-                            case .bad:
-                                connectionQuality = .bad
-                            }
-                        }
-                        ), cursorSpeed: cursorSpeed)
+                    WebView(urlString: currentURL?.absoluteString ?? "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, typingBuffer: $typingBuffer, cursorSpeed: cursorSpeed)
                         .scaleEffect(cumulativeScale * transientScale, anchor: .center)
                         .offset(x: contentOffset.width + transientOffset.width, y: contentOffset.height + transientOffset.height)
                         .background(Color.clear)
@@ -345,7 +325,7 @@ struct VMView: View {
                 }
                 .onAppear {
                     // Initialize temp value when sheet appears
-                    tempCursorSpeed = cursorSpeed
+                    tempCursorSpeed = cursorSpeed 
                 }
                 .frame(minHeight: 240)
                 .background(Color(.systemBackground))
@@ -359,11 +339,12 @@ struct VMView: View {
                 .interactiveDismissDisabled(true)
             }
         }
+        
         .overlay(alignment: .top) {
-            if showConnectionToast {
+            
+            if networkMonitor.isOffline {
                 ConnectionToast(
-                    quality: connectionQuality,
-                    isOffline: isOffline
+                    isOffline: true
                 )
                 .padding(.top, 12)
                 .transition(
@@ -371,31 +352,13 @@ struct VMView: View {
                         .combined(with: .opacity)
                 )
             }
+ 
         }
         .animation(
             .easeInOut(duration: 0.3),
-            value: isOffline || connectionQuality != .good
+            value: networkMonitor.isOffline
         )
-        .onChange(of: connectionQuality) { _, newQuality in
-            guard newQuality != .good else {
-                withAnimation {
-                    showConnectionToast = false
-                }
-                return
-            }
 
-            withAnimation {
-                showConnectionToast = true
-            }
-
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-
-                withAnimation {
-                    showConnectionToast = false
-                }
-            }
-        }
         
         .sheet(isPresented: $showDocumentPicker) {
             DocumentPickerView(allowedContentTypes: [.item], allowsMultipleSelection: true) { urls in
@@ -403,16 +366,7 @@ struct VMView: View {
                 NotificationCenter.default.post(name: Notification.Name("WebViewUploadFiles"), object: urls)
             }
         }
-        .onAppear {
-            NetworkMonitor.shared.start { offline in
-                DispatchQueue.main.async {
-                    self.isOffline = offline
-                    if offline {
-                        self.connectionQuality = .bad
-                    }
-                }
-            }
-        }
+
         .ignoresSafeArea()
         // Called when the scene phase changes (e.g., the app returns to the foreground from the background)
         .onChange(of: scenePhase) { oldValue, newValue in
@@ -428,20 +382,5 @@ struct VMView: View {
 #Preview(traits: .landscapeLeft) {
     ContentView()
         .preferredColorScheme(.dark)
-}
-
-final class NetworkMonitor {
-    static let shared = NetworkMonitor()
-    private let monitor = NWPathMonitor()
-    private var started = false
-    private init() {}
-    func start(statusChanged: @escaping (Bool) -> Void) {
-        guard !started else { return }
-        started = true
-        monitor.pathUpdateHandler = { path in
-            statusChanged(!(path.status == .satisfied))
-        }
-        monitor.start(queue: DispatchQueue.global(qos: .background))
-    }
 }
 

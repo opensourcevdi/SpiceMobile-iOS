@@ -1,0 +1,13 @@
+{
+  "id" : "0753a482-396d-4bb6-8e4d-17d19737225b",
+  "targets" : [
+    {
+      "id" : "CD3C1989-A4B6-4457-802A-00351619E9ED",
+      "name" : "OSVDIClient"
+    },
+    {
+      "id" : "28FDA1FA-CFEB-45FD-9EE7-29925E0BCB7D",
+      "name" : "bwLP Remote"
+    }
+  ]
+}

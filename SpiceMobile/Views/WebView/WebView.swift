@@ -14,18 +14,13 @@ import Network
 
 // MARK: - WebView Wrapper
 struct WebView: UIViewRepresentable {
-    
-    enum ConnectionQuality: String, CaseIterable, Equatable {
-        case good, slow, bad
-    }
-    
+
     let urlString: String
     @Binding var isLoading: Bool
     @Binding var shouldForceLandscape: Bool
     @Binding var currentURL: URL?
     @Binding var requestedURL: URL?
     @Binding var typingBuffer: String
-    @Binding var connectionQuality: ConnectionQuality
     var pageZoom: CGFloat = 0.62
     var cursorSpeed: Double = 2.0
     
@@ -41,7 +36,6 @@ struct WebView: UIViewRepresentable {
          currentURL: Binding<URL?>,
          requestedURL: Binding<URL?>,
          typingBuffer: Binding<String>,
-         connectionQuality: Binding<ConnectionQuality>,
          pageZoom: CGFloat = 0.62,
          cursorSpeed: Double = 2.0,
          pageReadyPredicateJS: String? = nil,
@@ -53,7 +47,6 @@ struct WebView: UIViewRepresentable {
         self._currentURL = currentURL
         self._requestedURL = requestedURL
         self._typingBuffer = typingBuffer
-        self._connectionQuality = connectionQuality
         self.pageZoom = pageZoom
         self.cursorSpeed = cursorSpeed
         self.pageReadyPredicateJS = pageReadyPredicateJS
@@ -70,7 +63,6 @@ struct WebView: UIViewRepresentable {
          requestedURL: Binding<URL?>,
          requestKeyboardFocus: Binding<Bool>,
          typingBuffer: Binding<String>,
-         connectionQuality: Binding<ConnectionQuality>,
          pageZoom: CGFloat = 0.62,
          cursorSpeed: Double = 2.0,
          pageReadyPredicateJS: String? = nil,
@@ -82,7 +74,6 @@ struct WebView: UIViewRepresentable {
         self._currentURL = currentURL
         self._requestedURL = requestedURL
         self._typingBuffer = typingBuffer
-        self._connectionQuality = connectionQuality
         self.pageZoom = pageZoom
         self.cursorSpeed = cursorSpeed
         self.pageReadyPredicateJS = pageReadyPredicateJS
@@ -813,16 +804,6 @@ struct WebView: UIViewRepresentable {
             decisionHandler(.allow)
         }
 
-        // Wird aufgerufen, wenn das Laden beginnt (erste Antwort vom Server)
-        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            navigationStartDate = Date()
-            DispatchQueue.main.async {
-                self.parent.isLoading = true
-                self.parent.currentURL = webView.url
-                self.parent.connectionQuality = .good
-            }
-        }
-
         // Wird aufgerufen, wenn Inhalte beginnen zu laden
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
             DispatchQueue.main.async {
@@ -839,19 +820,7 @@ struct WebView: UIViewRepresentable {
                 let current = webView.url?.absoluteString ?? ""
                 self.parent.shouldForceLandscape = current.hasPrefix(prefix)
                 self.parent.currentURL = webView.url
-                
-                // Evaluate connectionQuality based on navigationStartDate
-                if let start = self.navigationStartDate {
-                    let interval = Date().timeIntervalSince(start)
-                    // Heuristic thresholds: < 2s = good, < 8s = slow, otherwise bad
-                    if interval < 2.0 {
-                        self.parent.connectionQuality = .good
-                    } else if interval < 8.0 {
-                        self.parent.connectionQuality = .slow
-                    } else {
-                        self.parent.connectionQuality = .bad
-                    }
-                }
+            
             }
             let prefix = "https://demo.osvdi.uni-freiburg.de/spice-html5/#spice+tls://"
             let current = webView.url?.absoluteString ?? ""
@@ -964,9 +933,8 @@ extension WebView.Coordinator {
         @State private var requestedURL: URL? = nil
         @State private var requestKeyboardFocus: Bool = false
         @State private var typingBuffer: String = ""
-        @State private var connectionQuality: WebView.ConnectionQuality = .slow
         var body: some View {
-            WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, requestKeyboardFocus: $requestKeyboardFocus, typingBuffer: $typingBuffer, connectionQuality: $connectionQuality, pageZoom: 0.95)
+            WebView(urlString: "https://demo.osvdi.uni-freiburg.de/#/", isLoading: $isLoading, shouldForceLandscape: $shouldForceLandscape, currentURL: $currentURL, requestedURL: $requestedURL, requestKeyboardFocus: $requestKeyboardFocus, typingBuffer: $typingBuffer, pageZoom: 0.95)
                 .ignoresSafeArea()
         }
     }
