@@ -1,3 +1,11 @@
+//
+//  DocumentPickerView.swift
+//  SpiceMobile
+//
+//  Created by Lennard Siegel on 10.09.26.
+//
+
+
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit

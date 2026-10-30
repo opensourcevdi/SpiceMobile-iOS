@@ -4,7 +4,7 @@ import UIKit
 
 
 
-// Enhanced textfield (to detect backspace press)
+// Enhanced textfield - custom keys & detect backspace press
 struct EnhancedTextField: UIViewRepresentable {
 
     let placeholder: String

@@ -44,6 +44,18 @@
 		69EDD2372F642B8B0008D85D /* VMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22D2F6426100008D85D /* VMView.swift */; };
 		69EDD2392F642B930008D85D /* EnhancedTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD22B2F6426100008D85D /* EnhancedTextField.swift */; };
 		69EDD23B2F642BB80008D85D /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 69EDD2242F6426100008D85D /* Assets.xcassets */; };
+		AB1000000000000000000002 /* keyboardHelpers.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000001 /* keyboardHelpers.js */; };
+		AB1000000000000000000003 /* keyboardHelpers.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000001 /* keyboardHelpers.js */; };
+		AB1000000000000000000005 /* sendKey.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000004 /* sendKey.js */; };
+		AB1000000000000000000006 /* sendKey.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000004 /* sendKey.js */; };
+		AB1000000000000000000008 /* sendCharacter.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000007 /* sendCharacter.js */; };
+		AB1000000000000000000009 /* sendCharacter.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000007 /* sendCharacter.js */; };
+		AB100000000000000000000B /* setModifiers.js in Resources */ = {isa = PBXBuildFile; fileRef = AB100000000000000000000A /* setModifiers.js */; };
+		AB100000000000000000000C /* setModifiers.js in Resources */ = {isa = PBXBuildFile; fileRef = AB100000000000000000000A /* setModifiers.js */; };
+		AB100000000000000000000E /* disableUserScalable.js in Resources */ = {isa = PBXBuildFile; fileRef = AB100000000000000000000D /* disableUserScalable.js */; };
+		AB100000000000000000000F /* disableUserScalable.js in Resources */ = {isa = PBXBuildFile; fileRef = AB100000000000000000000D /* disableUserScalable.js */; };
+		AB1000000000000000000011 /* configureTouchBridge.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000010 /* configureTouchBridge.js */; };
+		AB1000000000000000000012 /* configureTouchBridge.js in Resources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000010 /* configureTouchBridge.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +82,12 @@
 		69EDD22E2F6426100008D85D /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		69EDD2302F6426100008D85D /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		69EDD2312F6426100008D85D /* SpiceMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiceMobileApp.swift; sourceTree = "<group>"; };
+		AB1000000000000000000001 /* keyboardHelpers.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = keyboardHelpers.js; sourceTree = "<group>"; };
+		AB1000000000000000000004 /* sendKey.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendKey.js; sourceTree = "<group>"; };
+		AB1000000000000000000007 /* sendCharacter.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sendCharacter.js; sourceTree = "<group>"; };
+		AB100000000000000000000A /* setModifiers.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = setModifiers.js; sourceTree = "<group>"; };
+		AB100000000000000000000D /* disableUserScalable.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = disableUserScalable.js; sourceTree = "<group>"; };
+		AB1000000000000000000010 /* configureTouchBridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = configureTouchBridge.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +111,8 @@
 		6940CED32F6A0726003F9516 /* Interaction-Overrides */ = {
 			isa = PBXGroup;
 			children = (
+				AB1000000000000000000010 /* configureTouchBridge.js */,
+				AB100000000000000000000D /* disableUserScalable.js */,
 				6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */,
 				6940CEC62F69EF71003F9516 /* touchToMouseScript.js */,
 			);
@@ -102,6 +122,10 @@
 		6940CED42F6A073E003F9516 /* Keyboard-Handling */ = {
 			isa = PBXGroup;
 			children = (
+				AB100000000000000000000A /* setModifiers.js */,
+				AB1000000000000000000007 /* sendCharacter.js */,
+				AB1000000000000000000004 /* sendKey.js */,
+				AB1000000000000000000001 /* keyboardHelpers.js */,
 				69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */,
 				69975F582FC47EE900F9B4A0 /* sendBackspace.js */,
 			);
@@ -303,6 +327,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB1000000000000000000011 /* configureTouchBridge.js in Resources */,
+				AB100000000000000000000E /* disableUserScalable.js in Resources */,
+				AB100000000000000000000B /* setModifiers.js in Resources */,
+				AB1000000000000000000008 /* sendCharacter.js in Resources */,
+				AB1000000000000000000005 /* sendKey.js in Resources */,
+				AB1000000000000000000002 /* keyboardHelpers.js in Resources */,
 				69557BDF2FC790A400B24E91 /* sendBackspace.js in Resources */,
 				69DB11F52F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F72F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
@@ -317,6 +347,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB1000000000000000000012 /* configureTouchBridge.js in Resources */,
+				AB100000000000000000000F /* disableUserScalable.js in Resources */,
+				AB100000000000000000000C /* setModifiers.js in Resources */,
+				AB1000000000000000000009 /* sendCharacter.js in Resources */,
+				AB1000000000000000000006 /* sendKey.js in Resources */,
+				AB1000000000000000000003 /* keyboardHelpers.js in Resources */,
 				69975F592FC47EF000F9B4A0 /* sendBackspace.js in Resources */,
 				69DB11F22F6CA43700266234 /* bwLP-Remote-LaunchScreen.storyboard in Resources */,
 				69DB11F42F6CA43700266234 /* OSVDIClient-LaunchScreen.storyboard in Resources */,
@@ -392,7 +428,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -427,7 +463,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -584,7 +620,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -618,7 +654,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
