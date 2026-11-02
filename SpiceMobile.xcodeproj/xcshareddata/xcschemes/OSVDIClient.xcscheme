@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "69C636D12EDE01610041D875"
                BuildableName = "OSVDIClient.app"
+               BlueprintName = "OSVDIClient"
                ReferencedContainer = "container:SpiceMobile.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,6 +47,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "69C636D12EDE01610041D875"
             BuildableName = "OSVDIClient.app"
+            BlueprintName = "OSVDIClient"
             ReferencedContainer = "container:SpiceMobile.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,6 +64,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "69C636D12EDE01610041D875"
             BuildableName = "OSVDIClient.app"
+            BlueprintName = "OSVDIClient"
             ReferencedContainer = "container:SpiceMobile.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

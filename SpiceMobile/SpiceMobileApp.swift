@@ -10,9 +10,32 @@ import CoreData
 import UIKit
 
 
+// MARK: - App Delegate
+
+/// Liefert die Scene-Konfiguration für das externe Display explizit (zusätzlich zur Info.plist).
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        print("[ExternalDisplay] Scene requested, role: \(connectingSceneSession.role.rawValue)")
+
+        let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        // Bis iOS 26 wird die externe Scene automatisch angeboten; ab iOS 27 nur über ein Scene Accessory
+        // (siehe ExternalDisplayAccessoryModifier), das seinen Inhalt selbst mitbringt.
+        if #unavailable(iOS 27), connectingSceneSession.role == .windowExternalDisplayNonInteractive {
+            configuration.delegateClass = ExternalDisplaySceneDelegate.self
+        }
+        return configuration
+    }
+}
+
 // main
 @main
 struct SpiceMobileClient: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     @AppStorage("cursorSpeed") private var cursorSpeed: Double = 2.0
     @AppStorage("hasInitializedCursorSpeed") private var hasInitializedCursorSpeed: Bool = false
 

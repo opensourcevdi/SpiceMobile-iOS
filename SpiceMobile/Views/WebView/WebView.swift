@@ -26,6 +26,40 @@ extension Notification.Name {
     static let webViewToggleCommand = Notification.Name("WebViewToggleCommand")
     static let webViewClearModifiers = Notification.Name("WebViewClearModifiers")
     static let webViewSetModifiers = Notification.Name("WebViewSetModifiers")
+    /// Touches vom Handy-Touchpad im Controller-Modus (userInfo: type, touches, changed).
+    static let webViewInjectTouch = Notification.Name("WebViewInjectTouch")
+}
+
+// MARK: - Container
+
+/// Hält die WKWebView, damit sie zwischen Handy-Bildschirm und externem Display wechseln kann,
+/// ohne dass die laufende Session neu geladen werden muss.
+final class WebContainerView: UIView {
+    let webView: WKWebView
+
+    init(webView: WKWebView) {
+        self.webView = webView
+        super.init(frame: .zero)
+        embedWebView(in: self)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func embedWebView(in host: UIView) {
+        guard webView.superview !== host else { return }
+        webView.removeFromSuperview()
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        host.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: host.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: host.trailingAnchor)
+        ])
+    }
 }
 
 // MARK: - WebView
@@ -42,6 +76,7 @@ struct WebView: UIViewRepresentable {
     @Binding var typingBuffer: String
     var pageZoom: CGFloat = 0.62
     var cursorSpeed: Double = 2.0
+    var isPresentedExternally = false
 
     init(urlString: String,
          isLoading: Binding<Bool>,
@@ -50,7 +85,9 @@ struct WebView: UIViewRepresentable {
          requestedURL: Binding<URL?>,
          typingBuffer: Binding<String>,
          pageZoom: CGFloat = 0.62,
-         cursorSpeed: Double = 2.0) {
+         cursorSpeed: Double = 2.0,
+         isPresentedExternally: Bool = false) {
+        self.isPresentedExternally = isPresentedExternally
         self.urlString = urlString
         self._isLoading = isLoading
         self._shouldForceLandscape = shouldForceLandscape
@@ -69,8 +106,9 @@ struct WebView: UIViewRepresentable {
         Coordinator(parent: self)
     }
 
-    func makeUIView(context: Context) -> WKWebView {
+    func makeUIView(context: Context) -> WebContainerView {
         let webView = makeConfiguredWebView(context: context)
+        let container = WebContainerView(webView: webView)
 
         context.coordinator.webView = webView
         DispatchQueue.main.async { context.coordinator.clearModifiers() }
@@ -104,10 +142,24 @@ struct WebView: UIViewRepresentable {
             }
         }
 
-        return webView
+        return container
     }
 
-    func updateUIView(_ webView: WKWebView, context: Context) {
+    static func dismantleUIView(_ container: WebContainerView, coordinator: Coordinator) {
+        // Verhindert, dass eine verworfene WebView auf dem externen Display hängen bleibt
+        container.webView.removeFromSuperview()
+    }
+
+    func updateUIView(_ container: WebContainerView, context: Context) {
+        let webView = container.webView
+
+        // Im Controller-Modus läuft die WebView auf dem externen Display, sonst im Container
+        if isPresentedExternally, let host = ExternalDisplayManager.shared.hostView {
+            container.embedWebView(in: host)
+        } else {
+            container.embedWebView(in: container)
+        }
+
         context.coordinator.syncTypingBuffer(typingBuffer)
 
         guard let url = requestedURL else { return }
@@ -191,6 +243,7 @@ extension WebView {
             observe(.webViewSendBackspace) { me, _ in me.run(KeyScripts.backspace) }
             observe(.webViewSendEnter) { me, _ in me.run(KeyScripts.enter) }
             observe(.webViewUploadFiles) { me, note in me.uploadFiles(from: note) }
+            observe(.webViewInjectTouch) { me, note in me.injectTouch(from: note) }
 
             observe(.webViewSendFunctionKey) { me, note in
                 let number = note.object as? Int ?? note.userInfo?["key"] as? Int
@@ -257,6 +310,20 @@ extension WebView {
             // Nur hinzugefügte Zeichen werden gesendet; Backspace läuft über den TextField-Callback
             guard newValue.count > oldValue.count, let last = newValue.last else { return }
             run(KeyScripts.sendCharacter(last))
+        }
+
+        // MARK: Remote touch (Controller-Modus)
+
+        /// Speist Touches des Handy-Touchpads in die Touch-zu-Maus-Brücke der Seite ein.
+        private func injectTouch(from notification: Notification) {
+            guard let info = notification.userInfo,
+                  let type = info["type"] as? String,
+                  let touches = info["touches"] as? [[Double]],
+                  let changed = info["changed"] as? [[Double]],
+                  let json = try? JSONSerialization.data(withJSONObject: [touches, changed]),
+                  let points = String(data: json, encoding: .utf8) else { return }
+
+            run("(function(a){ if (window.__touchBridgeInject) window.__touchBridgeInject('\(type)', a[0], a[1]); })(\(points));")
         }
 
         // MARK: File upload

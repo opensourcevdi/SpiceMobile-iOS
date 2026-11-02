@@ -271,7 +271,11 @@
     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: clientXY.clientX, clientY: clientXY.clientY }));
   }
 
-  document.addEventListener('touchstart', function(e){
+  // True, sobald Touches vom Handy-Touchpad (Controller-Modus) eingespeist werden.
+  // Die Koordinaten stammen dann nicht von dieser Seite, daher wird z. B. am Cursor gescrollt.
+  let remoteInput = false;
+
+  function handleTouchStart(e){
     if (e.touches.length === 1) {
       multiTouchActive = false;
       onTouchStart(e);
@@ -304,9 +308,10 @@
       }
       e.preventDefault();
     }
-  }, { passive: false });
+  }
+  document.addEventListener('touchstart', handleTouchStart, { passive: false });
 
-  document.addEventListener('touchmove', function(e){
+  function handleTouchMove(e){
     if (e.touches.length === 1 && !multiTouchActive) {
       onTouchMove(e);
     } else if (e.touches.length > 1) {
@@ -332,15 +337,16 @@
         const pxDX = -(moveDX) * scrollSpeed / (eff || 1);
         const pxDY = -(moveDY) * scrollSpeed / (eff || 1);
         if (Math.abs(pxDX) + Math.abs(pxDY) > 0) {
-          dispatchWheelAt(cx, cy, pxDX, pxDY);
+          dispatchWheelAt(remoteInput ? cursorX : cx, remoteInput ? cursorY : cy, pxDX, pxDY);
         }
       }
       e.preventDefault();
         
     }
-  }, { passive: false });
+  }
+  document.addEventListener('touchmove', handleTouchMove, { passive: false });
 
-  document.addEventListener('touchend', function(e){
+  function handleTouchEnd(e){
     if (multiTouchActive) {
       // Clear any pending immediate right-click; do not dispatch here
       if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
@@ -350,7 +356,18 @@
       return;
     }
     onTouchEnd(e);
-  }, { passive: false });
+  }
+  document.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+  // Einstiegspunkt für das native Touchpad: points sind [x, y]-Paare der aktiven bzw. geänderten Finger.
+  window.__touchBridgeInject = function(type, touches, changed) {
+    remoteInput = true;
+    const toTouches = function(points) { return points.map(function(p) { return { clientX: p[0], clientY: p[1] }; }); };
+    const event = { touches: toTouches(touches), changedTouches: toTouches(changed), preventDefault: function() {} };
+    if (type === 'touchstart') handleTouchStart(event);
+    else if (type === 'touchmove') handleTouchMove(event);
+    else if (type === 'touchend' || type === 'touchcancel') handleTouchEnd(event);
+  };
 
   function onTouchStart(e) {
     if (!window.enableTouchMouseBridge) return;

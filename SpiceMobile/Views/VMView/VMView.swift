@@ -21,6 +21,7 @@ private enum Endpoint {
 struct VMView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var networkMonitor = NetworkMonitor()
+    private let externalDisplay = ExternalDisplayManager.shared
 
     // WebView
     @State private var isLoading = true
@@ -59,11 +60,26 @@ struct VMView: View {
         currentURL?.absoluteString.hasPrefix(Endpoint.authPrefix) ?? false
     }
 
+    /// Controller-Modus: externes Display verbunden und eine VM-Session (Landscape) aktiv.
+    /// Die VM wird dann auf dem externen Display gezeigt, das Gerät dient als Fernbedienung.
+    private var isControllerMode: Bool {
+        externalDisplay.isConnected && shouldForceLandscape
+    }
+
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
 
             webView
+
+            if isControllerMode {
+                controllerBackground
+
+                // Touchpad für die Gesten; liegt unter den Overlay-Buttons und ist im Layout-Edit-Mode aus
+                TouchpadView()
+                    .ignoresSafeArea()
+                    .allowsHitTesting(!isLayoutEditMode)
+            }
 
             if isLayoutEditMode {
                 Color.black.opacity(0.25)
@@ -105,8 +121,17 @@ struct VMView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        // Externes Display nur während einer VM-Session übernehmen, sonst bleibt es beim Mirroring
+        .modifier(ExternalDisplayAccessoryModifier(isEnabled: shouldForceLandscape))
         .animation(.easeInOut(duration: 0.3), value: networkMonitor.isOffline)
         .animation(.easeInOut(duration: 0.25), value: isLayoutEditMode)
+        .onChange(of: isControllerMode) { _, _ in
+            // Zoom/Pan der lokalen Anzeige beim Moduswechsel zurücksetzen
+            cumulativeScale = 1.0
+            transientScale = 1.0
+            contentOffset = .zero
+            transientOffset = .zero
+        }
         .ignoresSafeArea()
         .onChange(of: scenePhase) { _, newPhase in
             // Zurück im Vordergrund: laufende Session durch Neuaufbau der WebView neu laden
@@ -126,7 +151,8 @@ struct VMView: View {
             currentURL: $currentURL,
             requestedURL: $requestedURL,
             typingBuffer: $typingBuffer,
-            cursorSpeed: cursorSpeed
+            cursorSpeed: cursorSpeed,
+            isPresentedExternally: isControllerMode
         )
         .scaleEffect(cumulativeScale * transientScale, anchor: .center)
         .offset(x: contentOffset.width + transientOffset.width,
@@ -144,6 +170,27 @@ struct VMView: View {
         }
         .simultaneousGesture(pinchGesture)
         .simultaneousGesture(panGesture)
+    }
+
+    /// Hintergrund im Controller-Modus; die VM selbst läuft auf dem externen Display.
+    private var controllerBackground: some View {
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+
+            VStack(spacing: 12) {
+                Image(systemName: "tv.and.mediabox")
+                    .font(.system(size: 48))
+                Text("Controller Mode")
+                    .font(.headline)
+                Text("The virtual machine is shown on the external display.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .foregroundStyle(.primary)
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity)
     }
 
     private var pinchGesture: some Gesture {

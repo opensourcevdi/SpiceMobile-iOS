@@ -14,6 +14,8 @@
 		69557BDE2FC7909900B24E91 /* disableSelectionScript.js in Resources */ = {isa = PBXBuildFile; fileRef = 6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */; };
 		69557BDF2FC790A400B24E91 /* sendBackspace.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F582FC47EE900F9B4A0 /* sendBackspace.js */; };
 		69557BE02FC790A800B24E91 /* sendEnter.js in Resources */ = {isa = PBXBuildFile; fileRef = 69975F5A2FC47EFC00F9B4A0 /* sendEnter.js */; };
+		6956136730990BF300205E0C /* TouchpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6956136630990BF300205E0C /* TouchpadView.swift */; };
+		6956136830990BF300205E0C /* TouchpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6956136630990BF300205E0C /* TouchpadView.swift */; };
 		697921B1301CAD2E00295DFA /* fileUplaod.js in Resources */ = {isa = PBXBuildFile; fileRef = 697921B0301CAD2700295DFA /* fileUplaod.js */; };
 		697921B2301CAD2E00295DFA /* fileUplaod.js in Resources */ = {isa = PBXBuildFile; fileRef = 697921B0301CAD2700295DFA /* fileUplaod.js */; };
 		69834CEE300978C900A7048A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69834CED300978C900A7048A /* ContentView.swift */; };
@@ -62,6 +64,7 @@
 		6940CEC42F69EF5B003F9516 /* disableSelectionScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = disableSelectionScript.js; sourceTree = "<group>"; };
 		6940CEC62F69EF71003F9516 /* touchToMouseScript.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = touchToMouseScript.js; sourceTree = "<group>"; };
 		6940CECF2F69FA25003F9516 /* loadJS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = loadJS.swift; sourceTree = "<group>"; };
+		6956136630990BF300205E0C /* TouchpadView.swift */ = {isa = PBXFileReference; path = TouchpadView.swift; sourceTree = "<group>"; };
 		696151442F6C6D180038A4A7 /* bwLP Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "bwLP Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		697921B0301CAD2700295DFA /* fileUplaod.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = fileUplaod.js; sourceTree = "<group>"; };
 		69834CED300978C900A7048A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -167,6 +170,7 @@
 				6991EF69305D86D400E71021 /* ConnectionToast.swift */,
 				69EDD22D2F6426100008D85D /* VMView.swift */,
 				6989BD653013A93800DF8BDB /* DocumentPickerView.swift */,
+				6956136630990BF300205E0C /* TouchpadView.swift */,
 			);
 			path = VMView;
 			sourceTree = "<group>";
@@ -379,6 +383,7 @@
 				6989BD663013A93800DF8BDB /* DocumentPickerView.swift in Sources */,
 				69DB11E72F6CA3FB00266234 /* WebView.swift in Sources */,
 				6991EF6B305D86E200E71021 /* ConnectionToast.swift in Sources */,
+				6956136830990BF300205E0C /* TouchpadView.swift in Sources */,
 				69DB11E52F6CA3EF00266234 /* EnhancedTextField.swift in Sources */,
 				69DB11E42F6CA3EC00266234 /* VMView.swift in Sources */,
 				69DB11E22F6CA3E600266234 /* Assets.xcassets in Sources */,
@@ -397,6 +402,7 @@
 				6989BD673013A93800DF8BDB /* DocumentPickerView.swift in Sources */,
 				69EDD2392F642B930008D85D /* EnhancedTextField.swift in Sources */,
 				6991EF6A305D86E200E71021 /* ConnectionToast.swift in Sources */,
+				6956136730990BF300205E0C /* TouchpadView.swift in Sources */,
 				69EDD2372F642B8B0008D85D /* VMView.swift in Sources */,
 				69EDD2362F642B870008D85D /* WebView.swift in Sources */,
 				69EDD2342F642B090008D85D /* SpiceMobileApp.swift in Sources */,
@@ -428,7 +434,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -463,7 +469,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.bwlpremote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -620,7 +626,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -654,7 +660,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 1.0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = de.unifreiburg.osvdiclient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
