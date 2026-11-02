@@ -31,15 +31,6 @@ struct VMView: View {
     @State private var requestedURL: URL?
     @State private var typingBuffer = ""
 
-    // Pinch-to-Zoom / Pan
-    // Rein visuell (scaleEffect/offset), die WebView selbst ändert ihre Größe nie.
-    // Pannen geht erst, wenn hineingezoomt wurde (cumulativeScale > 1).
-    @State private var cumulativeScale: CGFloat = 1.0
-    @State private var transientScale: CGFloat = 1.0
-    @State private var isPinching = false
-    @State private var contentOffset: CGSize = .zero
-    @State private var transientOffset: CGSize = .zero
-
     // Overlay-Steuerung (Home-Button und Control Bar lassen sich unabhängig verschieben)
     @State private var isOverlayExpanded = false
     @State private var controlBarPosition: CGSize = .zero
@@ -105,7 +96,6 @@ struct VMView: View {
                 onDone: { speed in
                     cursorSpeed = speed
                     showCursorSettings = false
-                    webViewID = UUID()
                 }
             )
         }
@@ -125,13 +115,6 @@ struct VMView: View {
         .modifier(ExternalDisplayAccessoryModifier(isEnabled: shouldForceLandscape))
         .animation(.easeInOut(duration: 0.3), value: networkMonitor.isOffline)
         .animation(.easeInOut(duration: 0.25), value: isLayoutEditMode)
-        .onChange(of: isControllerMode) { _, _ in
-            // Zoom/Pan der lokalen Anzeige beim Moduswechsel zurücksetzen
-            cumulativeScale = 1.0
-            transientScale = 1.0
-            contentOffset = .zero
-            transientOffset = .zero
-        }
         .ignoresSafeArea()
         .onChange(of: scenePhase) { _, newPhase in
             // Zurück im Vordergrund: laufende Session durch Neuaufbau der WebView neu laden
@@ -152,24 +135,14 @@ struct VMView: View {
             requestedURL: $requestedURL,
             typingBuffer: $typingBuffer,
             cursorSpeed: cursorSpeed,
+            isTouchMode: isTouchMode,
             isPresentedExternally: isControllerMode
         )
-        .scaleEffect(cumulativeScale * transientScale, anchor: .center)
-        .offset(x: contentOffset.width + transientOffset.width,
-                y: contentOffset.height + transientOffset.height)
         .contentShape(Rectangle())
         .opacity(isLoading ? 0 : 1)
         .clipped()
-        // Solange gezoomt wird, steuern Touches Zoom/Pan statt Maus-Eingaben an die Remote-Session
-        .allowsHitTesting(!isPinching && cumulativeScale <= 1.0)
         .blur(radius: isLayoutEditMode ? 8 : 0)
         .id(webViewID)
-        .onChange(of: isTouchMode) { _, _ in
-            // Touch-Mode wird beim Aufbau der WebView ausgewertet
-            webViewID = UUID()
-        }
-        .simultaneousGesture(pinchGesture)
-        .simultaneousGesture(panGesture)
     }
 
     /// Hintergrund im Controller-Modus; die VM selbst läuft auf dem externen Display.
@@ -191,42 +164,6 @@ struct VMView: View {
         }
         .allowsHitTesting(false)
         .transition(.opacity)
-    }
-
-    private var pinchGesture: some Gesture {
-        MagnificationGesture()
-            .onChanged { value in
-                isPinching = true
-                transientScale = clampedScale(cumulativeScale * value) / cumulativeScale
-            }
-            .onEnded { value in
-                cumulativeScale = clampedScale(cumulativeScale * value)
-                transientScale = 1.0
-                isPinching = false
-                if cumulativeScale <= 1.0 {
-                    // Beim vollständigen Herauszoomen das Pannen zurücksetzen
-                    contentOffset = .zero
-                    transientOffset = .zero
-                }
-            }
-    }
-
-    private var panGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                guard cumulativeScale > 1.0 else { return }
-                transientOffset = value.translation
-            }
-            .onEnded { value in
-                guard cumulativeScale > 1.0 else { return }
-                contentOffset.width += value.translation.width
-                contentOffset.height += value.translation.height
-                transientOffset = .zero
-            }
-    }
-
-    private func clampedScale(_ scale: CGFloat) -> CGFloat {
-        min(max(scale, 1.0), 4.0)
     }
 
     // MARK: Keyboard
@@ -266,7 +203,6 @@ struct VMView: View {
 
     private var homeButton: some View {
         Button {
-            cumulativeScale = 1.0
             requestedURL = URL(string: Endpoint.home)
             keyboardFocus = false
             withAnimation(.snappy) {
@@ -307,7 +243,7 @@ struct VMView: View {
                         .padding(.leading, 5)
                 }
 
-                controlButton(isDisabled: !isTouchMode) {
+                controlButton {
                     isTouchMode.toggle()
                 } icon: {
                     OverlayIcon(name: "hand.tap.fill")

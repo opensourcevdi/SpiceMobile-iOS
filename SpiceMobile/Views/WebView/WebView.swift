@@ -27,8 +27,7 @@ extension Notification.Name {
     static let webViewClearModifiers = Notification.Name("WebViewClearModifiers")
     static let webViewSetModifiers = Notification.Name("WebViewSetModifiers")
     /// Touches vom Handy-Touchpad im Controller-Modus (userInfo: type, touches, changed).
-    static let webViewInjectTouch = Notification.Name("WebViewInjectTouch")
-}
+    static let webViewInjectTouch = Notification.Name("WebViewInjectTouch")}
 
 // MARK: - Container
 
@@ -76,6 +75,7 @@ struct WebView: UIViewRepresentable {
     @Binding var typingBuffer: String
     var pageZoom: CGFloat = 0.62
     var cursorSpeed: Double = 2.0
+    var isTouchMode = true
     var isPresentedExternally = false
 
     init(urlString: String,
@@ -86,8 +86,10 @@ struct WebView: UIViewRepresentable {
          typingBuffer: Binding<String>,
          pageZoom: CGFloat = 0.62,
          cursorSpeed: Double = 2.0,
+         isTouchMode: Bool = true,
          isPresentedExternally: Bool = false) {
         self.isPresentedExternally = isPresentedExternally
+        self.isTouchMode = isTouchMode
         self.urlString = urlString
         self._isLoading = isLoading
         self._shouldForceLandscape = shouldForceLandscape
@@ -160,6 +162,11 @@ struct WebView: UIViewRepresentable {
             container.embedWebView(in: container)
         }
 
+        // Coordinator mit den aktuellen Werten versorgen und Touch-Einstellungen live anwenden,
+        // ohne die Seite neu zu laden
+        context.coordinator.parent = self
+        context.coordinator.applyTouchSettingsIfChanged()
+
         context.coordinator.syncTypingBuffer(typingBuffer)
 
         guard let url = requestedURL else { return }
@@ -190,11 +197,8 @@ struct WebView: UIViewRepresentable {
         contentController.add(context.coordinator, name: "haptics")
         contentController.addUserScript(JSLoader(fileName: "disableSelectionScript"))
 
-        // touchToMouseScript.js nur laden, wenn Touch-Mode aktiv ist
-        let isTouchModeEnabled = UserDefaults.standard.object(forKey: "isTouchMode") as? Bool ?? true
-        if isTouchModeEnabled {
-            contentController.addUserScript(JSLoader(fileName: "touchToMouseScript"))
-        }
+        // Das Skript ist immer geladen; ein- und ausgeschaltet wird es zur Laufzeit über configureTouchBridge.js
+        contentController.addUserScript(JSLoader(fileName: "touchToMouseScript"))
 
         // Pinch-Zoom der Seite selbst unterbinden
         contentController.addUserScript(JSLoader(fileName: "disableUserScalable", forMainFrameOnly: true))
@@ -211,9 +215,12 @@ extension WebView {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
 
-        let parent: WebView
+        var parent: WebView
         weak var webView: WKWebView?
 
+        // Zuletzt an die Seite übergebene Touch-Einstellungen
+        private var appliedTouchMode: Bool?
+        private var appliedCursorSpeed: Double?
         private var modifiers = ModifierState()
         private var lastTypingBuffer: String
         private var observers: [NSObjectProtocol] = []
@@ -409,11 +416,20 @@ extension WebView {
         /// Schaltet die Touch-zu-Maus-Brücke im Seiteninhalt ein (SPICE-Session) oder aus.
         private func configureTouchBridge(enabled: Bool) {
             let speed = parent.cursorSpeed.isFinite ? parent.cursorSpeed : 1.0
+            appliedTouchMode = parent.isTouchMode
+            appliedCursorSpeed = parent.cursorSpeed
             run(JSLoader(fileName: "configureTouchBridge", variables: [
-                "__ENABLED__": "\(enabled)",
+                "__ENABLED__": "\(enabled && parent.isTouchMode)",
                 "__PAGE_ZOOM__": "\(parent.pageZoom)",
                 "__CURSOR_SPEED__": "\(speed)"
             ]).source)
+        }
+
+        /// Wendet geänderten Touch-Modus bzw. Cursor-Speed auf die geladene Seite an, ohne sie neu zu laden.
+        func applyTouchSettingsIfChanged() {
+            guard let webView, appliedTouchMode != nil else { return }
+            guard appliedTouchMode != parent.isTouchMode || appliedCursorSpeed != parent.cursorSpeed else { return }
+            configureTouchBridge(enabled: WebView.isSpiceURL(webView.url) || parent.shouldForceLandscape)
         }
 
         // MARK: WKScriptMessageHandler

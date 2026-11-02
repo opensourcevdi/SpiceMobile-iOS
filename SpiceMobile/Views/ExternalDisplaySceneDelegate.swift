@@ -58,7 +58,7 @@ struct ExternalDisplayAccessoryModifier: ViewModifier {
     }
 }
 
-/// Inhalt des Accessories: eine schwarze Host-View, in die die WebView verschoben wird.
+// Inhalt des Accessories: eine schwarze Host-View, in die die WebView verschoben wird.
 private struct ExternalDisplayHostView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         print("[ExternalDisplay] accessory content created")

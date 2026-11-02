@@ -7,17 +7,17 @@
 
 /*
  touchToMouseBridge.js
- - Converts single-finger touch into cursor/mouse events, supports long-press drag and two-finger right click.
- - Placeholders to be replaced by native before injection:
-   __CURSOR_IMAGE_BASE64__
-   __DEFAULT_SPEED__
-   __DEFAULT_LERP__
+ - Converts single-finger touch into relative cursor/mouse events (touchpad style).
+ - Tap = left click, long-press = drag, two-finger tap = right click, two-finger move = scroll.
+ - Configured at runtime via window properties (see configureTouchBridge.js):
+   enableTouchMouseBridge, touchMousePageZoom, touchMouseCursorSpeed (default 1.6),
+   touchMouseAcceleration (0 = off, 1 = default), touchMouseScrollSpeed (default 2.0)
 */
 
 (function() {
   if (window.__touchMouseBridgeInstalled) return;
   window.__touchMouseBridgeInstalled = true;
- 
+
   // Bridge is gated by this flag to allow enabling only when needed
   if (!('enableTouchMouseBridge' in window)) {
     Object.defineProperty(window, 'enableTouchMouseBridge', {
@@ -28,36 +28,27 @@
     });
   }
 
-  // Expose a page zoom factor from native; default 1.0
-  if (!('touchMousePageZoom' in window)) {
-    Object.defineProperty(window, 'touchMousePageZoom', {
+  function defineOption(name, value) {
+    if (name in window) return;
+    Object.defineProperty(window, name, {
       configurable: true,
       enumerable: false,
       writable: true,
-      value: 1.0
+      value: value
     });
   }
 
-  // Optional interpolation factor for smoothing cursor motion (0..1)
-  if (!('touchMouseLerp' in window)) {
-    Object.defineProperty(window, 'touchMouseLerp', {
-      configurable: true,
-      enumerable: false,
-      writable: true,
-      value: 0.6
-    });
-  }
+  // Page zoom factor from native
+  defineOption('touchMousePageZoom', 1.0);
+  // Pointer acceleration strength: 0 = linear, 1 = default curve
+  defineOption('touchMouseAcceleration', 1.0);
+  // Scroll speed multiplier for two-finger scrolling
+  defineOption('touchMouseScrollSpeed', 2.0);
 
-  // Optional scroll speed multiplier for two-finger scrolling
-  if (!('touchMouseScrollSpeed' in window)) {
-    Object.defineProperty(window, 'touchMouseScrollSpeed', {
-      configurable: true,
-      enumerable: false,
-      writable: true,
-      value: 2.0 // default multiplier
-    });
+  function numberOption(name, fallback) {
+    const v = window[name];
+    return (typeof v === 'number' && isFinite(v)) ? v : fallback;
   }
-  
 
   function getViewportScale() {
     try { return (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1; } catch(_) { return 1; }
@@ -70,85 +61,87 @@
     return v * p;
   }
 
-  // Track cursor and touch positions for delta-based movement
+  function haptic() {
+    try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptics) { window.webkit.messageHandlers.haptics.postMessage({ type: 'tap' }); } } catch(_) {}
+  }
+
+  // Cursor position (page coordinates) and pending, not yet applied movement
   let cursorX = 0;
   let cursorY = 0;
-  let hasCursorPosition = false;
-  let lastTouchX = 0;
-  let lastTouchY = 0;
+  let pendingDX = 0;
+  let pendingDY = 0;
+  let rafId = 0;
 
   function clampCursorToViewport() {
-    var minX = 0;
-    var minY = 0;
-    var maxX = Math.max(0, window.innerWidth - 1);
-    var maxY = Math.max(0, window.innerHeight - 1);
-    if (cursorX < minX) cursorX = minX;
-    if (cursorY < minY) cursorY = minY;
+    const maxX = Math.max(0, window.innerWidth - 1);
+    const maxY = Math.max(0, window.innerHeight - 1);
+    if (cursorX < 0) cursorX = 0;
+    if (cursorY < 0) cursorY = 0;
     if (cursorX > maxX) cursorX = maxX;
     if (cursorY > maxY) cursorY = maxY;
   }
 
-  // Tap detection
-  let touchStartTime = 0;
+  // Tap / long-press / stroke thresholds
   const tapTimeThreshold = 300; // ms
-  const tapMoveThreshold = 6; // px radius
-
-  // Long-press detection for starting selection/drag
-  let longPressTimer = null;
+  const tapMoveThreshold = 8; // px, max distance from touch start
   const longPressDelay = 400; // ms
-  let movedBeyondLongPress = false;
-  let longPressStartX = 0;
-  let longPressStartY = 0;
   const longPressRadius = 18; // px
-  // Stroke detection (swipe/draw): if moved beyond a slightly larger threshold, suppress click on end
-  let isStrokeGesture = false;
-  let totalMoveSinceStartSq = 0;
-  let multiTouchActive = false;
+  const twoFingerTapWindow = 300; // ms
+  const twoFingerMoveThreshold = 8; // px
 
-  let twoFingerStartTime = { v: 0 };
-  let twoFingerStartX = { v: 0 };
-  let twoFingerStartY = { v: 0 };
-  let twoFingerLastX = 0;
-  let twoFingerLastY = 0;
-  let twoFingerMoved = { v: false };
-  let twoFingerTimer = { id: null };
-  const twoFingerImmediateWindow = 120; // ms
-  const twoFingerMoveThreshold = 8; // px radius
+  // Single-finger gesture state
+  let singleActive = false;
+  let startTime = 0;
+  let startX = 0;
+  let startY = 0;
+  let lastTouchX = 0;
+  let lastTouchY = 0;
+  let lastMoveTime = 0;
+  let maxDisplacementSq = 0;
+  let longPressTimer = null;
+  let isDragging = false;
+  let dragTarget = null;
+
+  // Two-finger gesture state
+  let multiTouchActive = false;
+  let multiStartTime = 0;
+  let multiStartX = 0;
+  let multiStartY = 0;
+  let multiLastX = 0;
+  let multiLastY = 0;
+  let multiMoved = false;
+  let multiMaxTouches = 0;
+
+  // True as soon as touches are fed in from the phone touchpad (controller mode).
+  // The coordinates then do not belong to this page, so e.g. scrolling happens at the cursor.
+  let remoteInput = false;
 
   function distanceSq(aX, aY, bX, bY) { const dx = aX - bX; const dy = aY - bY; return dx*dx + dy*dy; }
 
-
+  function cancelLongPress() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
 
   function ensureCursor() {
-      if (window.__touchMouseCursorDot) return window.__touchMouseCursorDot;
-      const img = document.createElement('img');
-      img.id = '__touchMouseCursorDot';
-   
-      
-      // mouse cursor base64 image
-      const base64 = 'iVBORw0KGgoAAAANSUhEUgAAABkAAAAjCAYAAABhCKGoAAAAAXNSR0IArs4c6QAAAIRlWElmTU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAADYAAAAAQAAANgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAABmgAwAEAAAAAQAAACMAAAAA/ltSngAAAAlwSFlzAAAhOAAAITgBRZYxYAAAABxpRE9UAAAAAgAAAAAAAAASAAAAKAAAABIAAAARAAAA6xAOUZoAAAC3SURBVEgN7NCtCsJgFIfx+YGK6B16PyaLxSKCxWIwWAyGBUEQBEEEQRAEwcvQ5x9WZM737D02DzwsjHN+Y0nyn8g/0GN/Qt3IO4XrKW+ftKEO/WR0XIhKqU3us+Vihui5ppa3sntDBK2o6QntcxBBS2p4QYcPiKAF1T2gYwEiaE61WOj0BRE0o2oMdA5ABE1joEsgImhMFTLPlQ0dCG1kFli4GYDsQ4ZW6F4CETawQI+SiKB+HvQCAAD//5d+LDIAAADsSURBVGNgwASvgEL/KcBFmEZiirwlwoLXQDUXgfgBEL8D4j9ADHPYNCCbIHgPVAHTgIt+BFTDjGYSN5AvDsRMaOJYuZ+AouiGz8IiFoxVN5GCX9EMrIXqu4Imvp9I87Aq+4FkGHL45iKJw3yqg9UEIgR/QQ1bC6SRw1cAyEf35QwizMOqZCFQdDUQc2CRnQcUg/kCRH8BYpDlVAVmQNOQLQGxC6lqA9Swc2gW3QbyGaltUTqaJSDfeFHbEh6ggeh5aTO1LQGZNx2IkeMGVN5RHWgATfwJxDCL1lHdBqiB9kB6ERC3ADEfVGyYUwD30+1dzivT0gAAAABJRU5ErkJggg==';
-      
-      img.src = 'data:image/png;base64,' + base64;
-      img.style.position = 'fixed';
-   
+    if (window.__touchMouseCursorDot) return window.__touchMouseCursorDot;
+    const img = document.createElement('img');
+    img.id = '__touchMouseCursorDot';
 
+    // mouse cursor base64 image
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAABkAAAAjCAYAAABhCKGoAAAAAXNSR0IArs4c6QAAAIRlWElmTU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAADYAAAAAQAAANgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAABmgAwAEAAAAAQAAACMAAAAA/ltSngAAAAlwSFlzAAAhOAAAITgBRZYxYAAAABxpRE9UAAAAAgAAAAAAAAASAAAAKAAAABIAAAARAAAA6xAOUZoAAAC3SURBVEgN7NCtCsJgFIfx+YGK6B16PyaLxSKCxWIwWAyGBUEQBEEEQRAEwcvQ5x9WZM737D02DzwsjHN+Y0nyn8g/0GN/Qt3IO4XrKW+ftKEO/WR0XIhKqU3us+Vihui5ppa3sntDBK2o6QntcxBBS2p4QYcPiKAF1T2gYwEiaE61WOj0BRE0o2oMdA5ABE1joEsgImhMFTLPlQ0dCG1kFli4GYDsQ4ZW6F4CETawQI+SiKB+HvQCAAD//5d+LDIAAADsSURBVGNgwASvgEL/KcBFmEZiirwlwoLXQDUXgfgBEL8D4j9ADHPYNCCbIHgPVAHTgIt+BFTDjGYSN5AvDsRMaOJYuZ+AouiGz8IiFoxVN5GCX9EMrIXqu4Imvp9I87Aq+4FkGHL45iKJw3yqg9UEIgR/QQ1bC6SRw1cAyEf35QwizMOqZCFQdDUQc2CRnQcUg/kCRH8BYpDlVAVmQNOQLQGxC6lqA9Swc2gW3QbyGaltUTqaJSDfeFHbEh6ggeh5aTO1LQGZNx2IkeMGVN5RHWgATfwJxDCL1lHdBqiB9kB6ERC3ADEfVGyYUwD30+1dzivT0gAAAABJRU5ErkJggg==';
 
-    // Hotspot of typical Windows cursor is near the top-left corner; offset a bit so the tip is the point
+    img.src = 'data:image/png;base64,' + base64;
+    img.style.position = 'fixed';
     img.style.marginLeft = '0px';
     img.style.marginTop = '0px';
     img.style.zIndex = '2147483647';
     img.style.pointerEvents = 'none';
-    img.style.left = '0px';
-    img.style.top = '0px';
+    img.style.left = cursorX + 'px';
+    img.style.top = cursorY + 'px';
     img.style.opacity = '1';
     img.style.transition = 'opacity 0.08s linear';
     document.documentElement.appendChild(img);
     window.__touchMouseCursorDot = img;
-    if (!hasCursorPosition) {
-      cursorX = parseFloat(img.style.left) || 0;
-      cursorY = parseFloat(img.style.top) || 0;
-      hasCursorPosition = true;
-    }
     return img;
   }
 
@@ -178,43 +171,56 @@
 
   function dispatchWheelAt(clientX, clientY, dx, dy){
     const el = document.elementFromPoint(clientX, clientY) || document.body;
-    const wheel = createWheelEvent(dx, dy, clientX, clientY);
-    el.dispatchEvent(wheel);
+    el.dispatchEvent(createWheelEvent(dx, dy, clientX, clientY));
   }
 
+  // Bitmask for MouseEvent.buttons: left = 1, right = 2, middle = 4 (differs from MouseEvent.button)
+  const buttonMasks = [1, 4, 2];
 
-  function showCursorAt(clientX, clientY) {
+  function createMouseEvent(type, x, y, button, pressed, detail) {
+    return new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: x,
+      clientY: y,
+      screenX: 0,
+      screenY: 0,
+      button: button,
+      buttons: pressed ? (buttonMasks[button] || 0) : 0,
+      detail: detail
+    });
+  }
+
+  function elementAtCursor() {
+    return document.elementFromPoint(cursorX, cursorY) || document.body;
+  }
+
+  // Pointer acceleration: slow movements are more precise, fast movements cover more distance
+  function cursorGain(distance, dt) {
+    const base = (typeof window.touchMouseCursorSpeed === 'number' && isFinite(window.touchMouseCursorSpeed) && window.touchMouseCursorSpeed > 0) ? window.touchMouseCursorSpeed : 1.6;
+    const accel = numberOption('touchMouseAcceleration', 1);
+    if (accel <= 0 || dt <= 0) return base;
+    const velocity = distance / dt; // px/ms
+    const factor = Math.min(2.2, 0.7 + 0.5 * velocity);
+    return base * (1 + (factor - 1) * accel);
+  }
+
+  // Applies all movement collected since the last frame in one step
+  function flushCursor() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    if (pendingDX === 0 && pendingDY === 0) return;
     const dot = ensureCursor();
-    cursorX = clientX;
-    cursorY = clientY;
+    cursorX += pendingDX;
+    cursorY += pendingDY;
+    pendingDX = 0;
+    pendingDY = 0;
     clampCursorToViewport();
     dot.style.left = cursorX + 'px';
     dot.style.top = cursorY + 'px';
     dot.style.opacity = '1';
-    hasCursorPosition = true;
-  }
 
-    
-  function moveCursorBy(dx, dy) {
-    const dot = ensureCursor();
-    const speed = (typeof window.touchMouseCursorSpeed === 'number' && isFinite(window.touchMouseCursorSpeed) && window.touchMouseCursorSpeed > 0) ? window.touchMouseCursorSpeed : 1.6;
-    const eff = getEffectiveScale(); // visualViewport.scale * touchMousePageZoom
-    const sx = (dx * speed) / (eff || 1);
-    const sy = (dy * speed) / (eff || 1);
-    // Smooth interpolation for more even updates without requiring extra frames
-    const lerp = (a, b, t) => a + (b - a) * t;
-    const t = (typeof window.touchMouseLerp === 'number' && isFinite(window.touchMouseLerp)) ? Math.max(0, Math.min(1, window.touchMouseLerp)) : 0.35;
-    const targetX = cursorX + sx;
-    const targetY = cursorY + sy;
-    cursorX = lerp(cursorX, targetX, t);
-    cursorY = lerp(cursorY, targetY, t);
-    clampCursorToViewport();
-    dot.style.left = cursorX + 'px';
-    dot.style.top = cursorY + 'px';
-    dot.style.opacity = '1';
-    hasCursorPosition = true;
-
-    // Immediately send the updated cursor position to the native/web bridge (no delay)
+    // Send the updated cursor position to the native/web bridge
     try {
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cursor) {
         window.webkit.messageHandlers.cursor.postMessage({ x: cursorX, y: cursorY });
@@ -222,195 +228,181 @@
         window.sendMousePosition(cursorX, cursorY);
       }
     } catch (_) {}
+
+    // Keep page logic in sync; while dragging the events stay on the element where the drag began
+    const el = (isDragging && dragTarget) ? dragTarget : elementAtCursor();
+    el.dispatchEvent(createMouseEvent('mousemove', cursorX, cursorY, 0, isDragging, 0));
   }
 
-
-
-  function targetElementAt(touch) {
-    return document.elementFromPoint(touch.clientX, touch.clientY) || document.body;
-  }
-
-
-  function createMouseEvent(type, clientXY, button = 0, detail = 0) {
-    const event = new MouseEvent(type, {
-      bubbles: true,
-      cancelable: true,
-      view: window,
-      clientX: clientXY.clientX,
-      clientY: clientXY.clientY,
-      screenX: 0,
-      screenY: 0,
-      button: button,
-      buttons: button === 0 ? 0 : (1 << button),
-      detail: detail
-    });
-    return event;
-  }
-
-  let isDragging = false;
-  let lastTarget = null;
-  let pendingTouch = null;
-  let lastTapTime = 0;
-  let lastTapX = 0;
-  let lastTapY = 0;
-  const doubleTapThreshold = 300; // ms
-  const doubleTapDistance = 30; // px radius
-
-  function dispatchAt(touch, type, button = 0, detail = 0) {
-    const el = lastTarget || targetElementAt(touch);
-    lastTarget = el;
-    const clientXY = { clientX: cursorX, clientY: cursorY };
-    el.dispatchEvent(createMouseEvent(type, clientXY, button, detail));
-  }
-
-  function dispatchRightClickAt(clientX, clientY) {
-    const el = document.elementFromPoint(clientX, clientY) || document.body;
-    const clientXY = { clientX: clientX, clientY: clientY };
-    el.dispatchEvent(createMouseEvent('mousedown', clientXY, 2, 1));
-    el.dispatchEvent(createMouseEvent('mouseup', clientXY, 2, 1));
-    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: clientXY.clientX, clientY: clientXY.clientY }));
-  }
-
-  // True, sobald Touches vom Handy-Touchpad (Controller-Modus) eingespeist werden.
-  // Die Koordinaten stammen dann nicht von dieser Seite, daher wird z. B. am Cursor gescrollt.
-  let remoteInput = false;
-
-  function handleTouchStart(e){
-    if (e.touches.length === 1) {
-      multiTouchActive = false;
-      onTouchStart(e);
-    } else if (e.touches.length > 1) {
-      multiTouchActive = true;
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-      if (e.touches.length === 2) {
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-        twoFingerStartTime.v = Date.now();
-        twoFingerStartX.v = (t1.clientX + t2.clientX) / 2;
-        twoFingerStartY.v = (t1.clientY + t2.clientY) / 2;
-        twoFingerMoved.v = false;
-        twoFingerLastX = twoFingerStartX.v;
-        twoFingerLastY = twoFingerStartY.v;
-        if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
-        twoFingerTimer.id = setTimeout(function(){
-          // Fire right-click only if still in immediate window and not moved, and still two touches
-          try {
-            if (twoFingerMoved.v) return;
-            // Check if two touches still active
-            if (document && typeof document !== 'undefined') {
-              // We cannot access e.touches here; rely on multiTouchActive and movement flag
-            }
-            dispatchRightClickAt(cursorX, cursorY);
-            try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptics) { window.webkit.messageHandlers.haptics.postMessage({ type: 'tap' }); } } catch(_){ }
-          } catch(_) { }
-          twoFingerTimer.id = null;
-        }, twoFingerImmediateWindow);
-      }
-      e.preventDefault();
+  function queueCursorMove(dx, dy, dt) {
+    const eff = getEffectiveScale() || 1;
+    const gain = cursorGain(Math.sqrt(dx*dx + dy*dy), dt);
+    pendingDX += (dx * gain) / eff;
+    pendingDY += (dy * gain) / eff;
+    if (!rafId) {
+      rafId = requestAnimationFrame(function() { rafId = 0; flushCursor(); });
     }
   }
-  document.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+  function startDrag() {
+    flushCursor();
+    isDragging = true;
+    dragTarget = elementAtCursor();
+    dragTarget.dispatchEvent(createMouseEvent('mousedown', cursorX, cursorY, 0, true, 1));
+    haptic();
+  }
+
+  function releaseDrag() {
+    if (!isDragging) return;
+    flushCursor();
+    const el = dragTarget || elementAtCursor();
+    el.dispatchEvent(createMouseEvent('mouseup', cursorX, cursorY, 0, false, 1));
+    isDragging = false;
+    dragTarget = null;
+  }
+
+  function dispatchLeftClick() {
+    const el = elementAtCursor();
+    el.dispatchEvent(createMouseEvent('mousedown', cursorX, cursorY, 0, true, 1));
+    el.dispatchEvent(createMouseEvent('mouseup', cursorX, cursorY, 0, false, 1));
+    el.dispatchEvent(createMouseEvent('click', cursorX, cursorY, 0, false, 1));
+  }
+
+  function dispatchRightClick() {
+    const el = elementAtCursor();
+    el.dispatchEvent(createMouseEvent('mousedown', cursorX, cursorY, 2, true, 1));
+    el.dispatchEvent(createMouseEvent('mouseup', cursorX, cursorY, 2, false, 1));
+    el.dispatchEvent(createMouseEvent('contextmenu', cursorX, cursorY, 2, false, 0));
+  }
+
+  function handleTouchStart(e){
+    // Bei deaktivierter Brücke bleiben Touches unangetastet
+    if (!window.enableTouchMouseBridge) return;
+    const count = e.touches.length;
+    if (count === 1 && !multiTouchActive) {
+      onTouchStart(e);
+      return;
+    }
+    if (count < 2) return;
+
+    if (!multiTouchActive) {
+      // A second finger joined: abort whatever the single finger was doing, without a click
+      multiTouchActive = true;
+      singleActive = false;
+      cancelLongPress();
+      releaseDrag();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      multiStartTime = Date.now();
+      multiStartX = (t1.clientX + t2.clientX) / 2;
+      multiStartY = (t1.clientY + t2.clientY) / 2;
+      multiLastX = multiStartX;
+      multiLastY = multiStartY;
+      multiMoved = false;
+      multiMaxTouches = 0;
+    }
+    multiMaxTouches = Math.max(multiMaxTouches, count);
+    e.preventDefault();
+  }
 
   function handleTouchMove(e){
-    if (e.touches.length === 1 && !multiTouchActive) {
-      onTouchMove(e);
-    } else if (e.touches.length > 1) {
-      multiTouchActive = true;
+    if (multiTouchActive) {
       if (e.touches.length >= 2) {
         const t1 = e.touches[0];
         const t2 = e.touches[1];
         const cx = (t1.clientX + t2.clientX) / 2;
         const cy = (t1.clientY + t2.clientY) / 2;
-        const dx = cx - twoFingerStartX.v;
-        const dy = cy - twoFingerStartY.v;
-        if ((dx*dx + dy*dy) > (twoFingerMoveThreshold * twoFingerMoveThreshold)) {
-          twoFingerMoved.v = true;
-          if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
+        if (!multiMoved && distanceSq(cx, cy, multiStartX, multiStartY) > (twoFingerMoveThreshold * twoFingerMoveThreshold)) {
+          multiMoved = true;
         }
-        // Two-finger scroll handling
-        const eff = getEffectiveScale();
-        const moveDX = cx - twoFingerLastX;
-        const moveDY = cy - twoFingerLastY;
-        twoFingerLastX = cx;
-        twoFingerLastY = cy;
-        const scrollSpeed = (typeof window.touchMouseScrollSpeed === 'number' && isFinite(window.touchMouseScrollSpeed)) ? window.touchMouseScrollSpeed : 2.0;
-        const pxDX = -(moveDX) * scrollSpeed / (eff || 1);
-        const pxDY = -(moveDY) * scrollSpeed / (eff || 1);
-        if (Math.abs(pxDX) + Math.abs(pxDY) > 0) {
-          dispatchWheelAt(remoteInput ? cursorX : cx, remoteInput ? cursorY : cy, pxDX, pxDY);
+        // Two-finger scroll starts once the fingers moved clearly, so a tap never scrolls
+        if (multiMoved) {
+          const eff = getEffectiveScale() || 1;
+          const scrollSpeed = numberOption('touchMouseScrollSpeed', 2.0);
+          const pxDX = -(cx - multiLastX) * scrollSpeed / eff;
+          const pxDY = -(cy - multiLastY) * scrollSpeed / eff;
+          multiLastX = cx;
+          multiLastY = cy;
+          if (Math.abs(pxDX) + Math.abs(pxDY) > 0) {
+            flushCursor();
+            dispatchWheelAt(remoteInput ? cursorX : cx, remoteInput ? cursorY : cy, pxDX, pxDY);
+          }
         }
       }
       e.preventDefault();
-        
+      return;
+    }
+    if (e.touches.length === 1) {
+      onTouchMove(e);
     }
   }
-  document.addEventListener('touchmove', handleTouchMove, { passive: false });
 
-  function handleTouchEnd(e){
+  function handleTouchEnd(e, cancelled){
     if (multiTouchActive) {
-      // Clear any pending immediate right-click; do not dispatch here
-      if (twoFingerTimer.id) { clearTimeout(twoFingerTimer.id); twoFingerTimer.id = null; }
-      multiTouchActive = false;
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      // The gesture ends only when all fingers are up; remaining fingers are ignored to avoid cursor jumps
+      if (e.touches.length === 0 || cancelled) {
+        const isTwoFingerTap = !cancelled && !multiMoved && multiMaxTouches === 2 && (Date.now() - multiStartTime) <= twoFingerTapWindow;
+        multiTouchActive = false;
+        if (isTwoFingerTap) {
+          flushCursor();
+          dispatchRightClick();
+          haptic();
+        }
+      }
       e.preventDefault();
       return;
     }
-    onTouchEnd(e);
+    onTouchEnd(e, cancelled);
   }
-  document.addEventListener('touchend', handleTouchEnd, { passive: false });
 
-  // Einstiegspunkt für das native Touchpad: points sind [x, y]-Paare der aktiven bzw. geänderten Finger.
+  // Real touches on this page: coordinates are local
+  document.addEventListener('touchstart', function(e) { remoteInput = false; handleTouchStart(e); }, { passive: false });
+  document.addEventListener('touchmove', function(e) { remoteInput = false; handleTouchMove(e); }, { passive: false });
+  document.addEventListener('touchend', function(e) { remoteInput = false; handleTouchEnd(e, false); }, { passive: false });
+  document.addEventListener('touchcancel', function(e) { remoteInput = false; handleTouchEnd(e, true); }, { passive: false });
+
+  // Entry point for the native touchpad: points are [x, y] pairs of the active resp. changed fingers.
   window.__touchBridgeInject = function(type, touches, changed) {
     remoteInput = true;
     const toTouches = function(points) { return points.map(function(p) { return { clientX: p[0], clientY: p[1] }; }); };
     const event = { touches: toTouches(touches), changedTouches: toTouches(changed), preventDefault: function() {} };
     if (type === 'touchstart') handleTouchStart(event);
     else if (type === 'touchmove') handleTouchMove(event);
-    else if (type === 'touchend' || type === 'touchcancel') handleTouchEnd(event);
+    else if (type === 'touchend') handleTouchEnd(event, false);
+    else if (type === 'touchcancel') handleTouchEnd(event, true);
   };
 
   function onTouchStart(e) {
     if (!window.enableTouchMouseBridge) return;
-    if (e.touches.length !== 1) return;
     const t = e.touches[0];
     e.preventDefault();
 
-    touchStartTime = Date.now();
+    // Safety net: never leave a previous drag pressed
+    cancelLongPress();
+    releaseDrag();
 
-    // Remember initial touch position for delta, show cursor without teleport
+    singleActive = true;
+    startTime = Date.now();
+    startX = t.clientX;
+    startY = t.clientY;
     lastTouchX = t.clientX;
     lastTouchY = t.clientY;
+    lastMoveTime = performance.now();
+    maxDisplacementSq = 0;
 
-    longPressStartX = t.clientX;
-    longPressStartY = t.clientY;
-    movedBeyondLongPress = false;
+    ensureCursor().style.opacity = '1';
 
-    const dot = ensureCursor();
-    dot.style.opacity = '1';
-
-    // Schedule long-press to start dragging
-    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    // Long-press starts dragging at the current cursor position
     longPressTimer = setTimeout(function(){
-      const stayedNear = distanceSq(lastTouchX, lastTouchY, longPressStartX, longPressStartY) <= (longPressRadius * longPressRadius);
-      if (!stayedNear || movedBeyondLongPress || isDragging) { return; }
-      // Start selection/drag at the current cursor position (do not realign to touch to avoid visible jump)
-      try { if (typeof syncCursorOverlay === 'function') { syncCursorOverlay(); } } catch(_){ }
-      isDragging = true;
-      const el = document.elementFromPoint(cursorX, cursorY) || document.body;
-      const clientXY = { clientX: cursorX, clientY: cursorY };
-      el.dispatchEvent(createMouseEvent('mousedown', clientXY, 0, 1));
-      // Haptic feedback like single tap when selection starts
-      try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptics) { window.webkit.messageHandlers.haptics.postMessage({ type: 'tap' }); } } catch(_){}
+      longPressTimer = null;
+      if (!singleActive || isDragging) return;
+      if (maxDisplacementSq > (longPressRadius * longPressRadius)) return;
+      startDrag();
     }, longPressDelay);
-
-    isStrokeGesture = false;
-    totalMoveSinceStartSq = 0;
-    pendingTouch = t;
   }
 
   function onTouchMove(e) {
-    if (!window.enableTouchMouseBridge) return;
-    if (e.touches.length !== 1) return;
+    if (!window.enableTouchMouseBridge || !singleActive) return;
     const t = e.touches[0];
     e.preventDefault();
 
@@ -419,71 +411,35 @@
     lastTouchX = t.clientX;
     lastTouchY = t.clientY;
 
-    if (!movedBeyondLongPress) {
-      movedBeyondLongPress = distanceSq(lastTouchX, lastTouchY, longPressStartX, longPressStartY) > (longPressRadius * longPressRadius);
-    }
+    // Distance from the touch start decides between tap/long-press and a real movement
+    maxDisplacementSq = Math.max(maxDisplacementSq, distanceSq(t.clientX, t.clientY, startX, startY));
 
-    if (!isDragging) {
-      const moveSq = dx*dx + dy*dy;
-      if (moveSq > (tapMoveThreshold * tapMoveThreshold)) {
-        movedBeyondLongPress = true;
-      }
-      // If the finger moves more than a modest threshold from the initial long-press start, consider it a stroke
-      const fromStartSq = distanceSq(lastTouchX, lastTouchY, longPressStartX, longPressStartY);
-      if (fromStartSq > ((longPressRadius * 1.2) * (longPressRadius * 1.2))) {
-        isStrokeGesture = true;
-      }
-      // Not dragging yet: move cursor and also send mousemove to keep page logic in sync
-      moveCursorBy(dx, dy);
-      const el = document.elementFromPoint(cursorX, cursorY) || document.body;
-      const clientXY = { clientX: cursorX, clientY: cursorY };
-      el.dispatchEvent(createMouseEvent('mousemove', clientXY));
-      pendingTouch = t;
+    const now = performance.now();
+    const dt = Math.max(4, now - lastMoveTime);
+    lastMoveTime = now;
+    queueCursorMove(dx, dy, dt);
+  }
+
+  function onTouchEnd(e, cancelled) {
+    if (!window.enableTouchMouseBridge) return;
+    e.preventDefault();
+    cancelLongPress();
+    if (!singleActive) return;
+    singleActive = false;
+
+    flushCursor();
+
+    if (isDragging) {
+      releaseDrag();
       return;
     }
 
-    // Dragging: move the cursor by delta and send mousemove at the last target
-    moveCursorBy(dx, dy);
-    const el = lastTarget || document.elementFromPoint(cursorX, cursorY) || document.body;
-    const clientXY = { clientX: cursorX, clientY: cursorY };
-    el.dispatchEvent(createMouseEvent('mousemove', clientXY));
-    // While dragging, any meaningful movement marks this as a stroke-like interaction
-    const fromStartDragSq = distanceSq(cursorX, cursorY, longPressStartX, longPressStartY);
-    if (fromStartDragSq > ((longPressRadius * 1.0) * (longPressRadius * 1.0))) {
-      isStrokeGesture = true;
+    const elapsed = Date.now() - startTime;
+    const isTap = !cancelled && elapsed <= tapTimeThreshold && maxDisplacementSq <= (tapMoveThreshold * tapMoveThreshold);
+    if (isTap) {
+      dispatchLeftClick();
+      haptic();
     }
-  }
-
-  function onTouchEnd(e) {
-    if (!window.enableTouchMouseBridge) return;
-    e.preventDefault();
-    const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || pendingTouch;
-
-    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-
-    const elapsed = Date.now() - touchStartTime;
-    const movedSq = (lastTouchX - (t ? t.clientX : lastTouchX))**2 + (lastTouchY - (t ? t.clientY : lastTouchY))**2;
-    const isTap = !isDragging && !movedBeyondLongPress && !isStrokeGesture && (elapsed <= tapTimeThreshold) && (movedSq <= (tapMoveThreshold * tapMoveThreshold));
-
-    if (isDragging) {
-      if (t) {
-        dispatchAt(t, 'mouseup', 0);
-      } else if (lastTarget) {
-        lastTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-      }
-    } else if (isTap) {
-      // Simulate a normal left click at current cursor position
-      const el = document.elementFromPoint(cursorX, cursorY) || document.body;
-      const clientXY = { clientX: cursorX, clientY: cursorY };
-      el.dispatchEvent(createMouseEvent('mousedown', clientXY, 0, 1));
-      el.dispatchEvent(createMouseEvent('mouseup', clientXY, 0, 1));
-      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: clientXY.clientX, clientY: clientXY.clientY }));
-      try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptics) { window.webkit.messageHandlers.haptics.postMessage({ type: 'tap' }); } } catch(_){}
-    }
-
-    isDragging = false;
-    pendingTouch = null;
   }
 
 })();
-
