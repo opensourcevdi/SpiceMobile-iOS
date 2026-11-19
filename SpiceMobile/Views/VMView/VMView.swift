@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 private enum Endpoint {
     static let home = "https://bwlehrpool.osvdi.uni-freiburg.de/"
     static let start = "https://bwlehrpool.osvdi.uni-freiburg.de/"
+    static let appHost = "bwlehrpool.osvdi.uni-freiburg.de"
     static let authPrefix = "https://auth.dev.escience.uni-freiburg.de/realms/osvdi/protocol/openid-connect/"
 }
 
@@ -30,6 +31,7 @@ struct VMView: View {
     @State private var currentURL: URL?
     @State private var requestedURL: URL?
     @State private var typingBuffer = ""
+    @State private var canGoBack = false
 
     // Overlay-Steuerung (Home-Button und Control Bar lassen sich unabhängig verschieben)
     @State private var isOverlayExpanded = false
@@ -49,6 +51,13 @@ struct VMView: View {
 
     private var isOnAuthURL: Bool {
         currentURL?.absoluteString.hasPrefix(Endpoint.authPrefix) ?? false
+    }
+
+    /// Die Navigationsleiste erscheint nur außerhalb von bwLehrpool, also auf Anmelde- und Institutionsseiten.
+    /// Die Start-URL liegt auf bwLehrpool, daher ist sie von Beginn an ausgeblendet; ebenso in der SPICE-Session.
+    private var showsNavigationRibbon: Bool {
+        guard !shouldForceLandscape, let host = currentURL?.host() else { return false }
+        return host != Endpoint.appHost
     }
 
     /// Controller-Modus: externes Display verbunden und eine VM-Session (Landscape) aktiv.
@@ -87,6 +96,11 @@ struct VMView: View {
 
             if isLoading {
                 LoadingPulse()
+            }
+
+            // Nur vor dem Login (Startseite, Institutionsauswahl) Navigation anbieten
+            if showsNavigationRibbon {
+                navigationRibbon
             }
         }
         .sheet(isPresented: $showCursorSettings) {
@@ -134,6 +148,7 @@ struct VMView: View {
             currentURL: $currentURL,
             requestedURL: $requestedURL,
             typingBuffer: $typingBuffer,
+            canGoBack: $canGoBack,
             cursorSpeed: cursorSpeed,
             isTouchMode: isTouchMode,
             isPresentedExternally: isControllerMode
@@ -164,6 +179,39 @@ struct VMView: View {
         }
         .allowsHitTesting(false)
         .transition(.opacity)
+    }
+
+    // MARK: Navigation ribbon
+
+    /// Zurück und Neu laden – z. B. wenn bei der Anmeldung die falsche Institution gewählt wurde.
+    private var navigationRibbon: some View {
+        VStack {
+            // Maße und Abstände entsprechen der Control Bar, damit der Reload-Button beim Wechsel
+            // in die SPICE-Session exakt dort liegt, wo danach der Plus-Button erscheint
+            HStack {
+                Button {
+                    NotificationCenter.default.post(name: .webViewGoBack, object: nil)
+                } label: {
+                    OverlayIcon(name: "chevron.backward", resizable: false, padding: 10)
+                }
+                .disabled(!canGoBack)
+                .opacity(canGoBack ? 1.0 : 0.4)
+                .accessibilityLabel("Back")
+
+                Button {
+                    NotificationCenter.default.post(name: .webViewReload, object: nil)
+                } label: {
+                    OverlayIcon(name: "arrow.clockwise", resizable: false, padding: 10)
+                }
+                .accessibilityLabel("Reload")
+            }
+            .padding(1)
+            .background(.ultraThinMaterial, in: Capsule())
+            .padding(.top, 24)
+            .padding(.trailing, 24)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            Spacer()
+        }
     }
 
     // MARK: Keyboard
@@ -214,7 +262,6 @@ struct VMView: View {
         }
         .transition(.move(edge: .trailing).combined(with: .opacity))
         .disabled(isDraggingHome || isLayoutEditMode)
-        .padding(.top, 24)
         .padding(.leading, 24)
         .layoutDraggable(isEnabled: isLayoutEditMode, position: $homePosition, isDragging: $isDraggingHome)
     }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import WebKit
+import SafariServices
 import UniformTypeIdentifiers
 
 // MARK: - Notifications
@@ -27,7 +28,10 @@ extension Notification.Name {
     static let webViewClearModifiers = Notification.Name("WebViewClearModifiers")
     static let webViewSetModifiers = Notification.Name("WebViewSetModifiers")
     /// Touches vom Handy-Touchpad im Controller-Modus (userInfo: type, touches, changed).
-    static let webViewInjectTouch = Notification.Name("WebViewInjectTouch")}
+    static let webViewInjectTouch = Notification.Name("WebViewInjectTouch")
+    static let webViewGoBack = Notification.Name("WebViewGoBack")
+    static let webViewReload = Notification.Name("WebViewReload")
+}
 
 // MARK: - Container
 
@@ -73,6 +77,7 @@ struct WebView: UIViewRepresentable {
     @Binding var currentURL: URL?
     @Binding var requestedURL: URL?
     @Binding var typingBuffer: String
+    @Binding var canGoBack: Bool
     var pageZoom: CGFloat = 0.62
     var cursorSpeed: Double = 2.0
     var isTouchMode = true
@@ -84,6 +89,7 @@ struct WebView: UIViewRepresentable {
          currentURL: Binding<URL?>,
          requestedURL: Binding<URL?>,
          typingBuffer: Binding<String>,
+         canGoBack: Binding<Bool> = .constant(false),
          pageZoom: CGFloat = 0.62,
          cursorSpeed: Double = 2.0,
          isTouchMode: Bool = true,
@@ -96,6 +102,7 @@ struct WebView: UIViewRepresentable {
         self._currentURL = currentURL
         self._requestedURL = requestedURL
         self._typingBuffer = typingBuffer
+        self._canGoBack = canGoBack
         self.pageZoom = pageZoom
         self.cursorSpeed = cursorSpeed
     }
@@ -195,6 +202,7 @@ struct WebView: UIViewRepresentable {
     private func makeConfiguredWebView(context: Context) -> WKWebView {
         let contentController = WKUserContentController()
         contentController.add(context.coordinator, name: "haptics")
+
         contentController.addUserScript(JSLoader(fileName: "disableSelectionScript"))
 
         // Das Skript ist immer geladen; ein- und ausgeschaltet wird es zur Laufzeit über configureTouchBridge.js
@@ -224,6 +232,8 @@ extension WebView {
         private var modifiers = ModifierState()
         private var lastTypingBuffer: String
         private var observers: [NSObjectProtocol] = []
+        // `transitioningDelegate` ist weak, daher hier festgehalten
+        private let bottomTransition = DefaultModalTransition()
 
         init(parent: WebView) {
             self.parent = parent
@@ -251,6 +261,8 @@ extension WebView {
             observe(.webViewSendEnter) { me, _ in me.run(KeyScripts.enter) }
             observe(.webViewUploadFiles) { me, note in me.uploadFiles(from: note) }
             observe(.webViewInjectTouch) { me, note in me.injectTouch(from: note) }
+            observe(.webViewGoBack) { me, _ in me.goBack() }
+            observe(.webViewReload) { me, _ in me.reload() }
 
             observe(.webViewSendFunctionKey) { me, note in
                 let number = note.object as? Int ?? note.userInfo?["key"] as? Int
@@ -278,6 +290,23 @@ extension WebView {
                     me.modifiers.command = info["command"] as? Bool ?? me.modifiers.command
                 }
                 me.applyModifiers()
+            }
+        }
+
+        // MARK: Navigation
+
+        private func goBack() {
+            guard let webView, webView.canGoBack else { return }
+            webView.goBack()
+        }
+
+        /// Lädt die aktuelle Seite neu; ist noch keine Seite geladen (z. B. nach Netzwerkfehler), wird die Start-URL geladen.
+        private func reload() {
+            guard let webView else { return }
+            if webView.url != nil {
+                webView.reload()
+            } else if let url = URL(string: parent.urlString) {
+                webView.load(URLRequest(url: url))
             }
         }
 
@@ -359,6 +388,11 @@ extension WebView {
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            // Navigationen in iframes (z. B. Keycloak-SSO-Check) dürfen den Zustand der Hauptseite nicht überschreiben
+            guard navigationAction.targetFrame?.isMainFrame == true else {
+                decisionHandler(.allow)
+                return
+            }
             let url = navigationAction.request.url
             DispatchQueue.main.async {
                 self.parent.shouldForceLandscape = WebView.isSpiceURL(url)
@@ -371,6 +405,7 @@ extension WebView {
             DispatchQueue.main.async {
                 self.parent.isLoading = true
                 self.parent.currentURL = webView.url
+                self.parent.canGoBack = webView.canGoBack
             }
         }
 
@@ -381,6 +416,7 @@ extension WebView {
                 self.parent.isLoading = false
                 self.parent.shouldForceLandscape = isSpice
                 self.parent.currentURL = webView.url
+                self.parent.canGoBack = webView.canGoBack
             }
 
             if isSpice {
@@ -410,7 +446,39 @@ extension WebView {
             DispatchQueue.main.async {
                 self.parent.isLoading = false
                 self.parent.currentURL = webView.url
+                self.parent.canGoBack = webView.canGoBack
             }
+        }
+
+        // MARK: WKUIDelegate
+
+        /// Links mit `target="_blank"` bzw. `window.open` würden ohne diese Methode ignoriert.
+        /// Webseiten öffnen sich im In-App-Safari als Popup, alles andere in derselben WebView.
+        func webView(_ webView: WKWebView,
+                     createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction,
+                     windowFeatures: WKWindowFeatures) -> WKWebView? {
+            guard navigationAction.targetFrame == nil, let url = navigationAction.request.url else { return nil }
+
+            if ["http", "https"].contains(url.scheme?.lowercased()), let presenter = topViewController(of: webView) {
+                let safari = SFSafariViewController(url: url)
+                // Leerer Delegate ersetzt Safaris seitliche Animation durch das Standard-Einblenden von unten
+                safari.modalPresentationStyle = .fullScreen
+                safari.transitioningDelegate = bottomTransition
+                presenter.present(safari, animated: true)
+            } else {
+                webView.load(navigationAction.request)
+            }
+            return nil
+        }
+
+        /// Oberster präsentierter View Controller im Fenster der WebView.
+        private func topViewController(of view: UIView) -> UIViewController? {
+            var top = view.window?.rootViewController
+            while let presented = top?.presentedViewController {
+                top = presented
+            }
+            return top
         }
 
         /// Schaltet die Touch-zu-Maus-Brücke im Seiteninhalt ein (SPICE-Session) oder aus.
@@ -449,6 +517,11 @@ extension WebView {
         }
     }
 }
+
+// MARK: - Safari transition
+
+/// Implementiert keine Methoden, sodass UIKit die Standard-Modal-Animation (von unten) verwendet.
+private final class DefaultModalTransition: NSObject, UIViewControllerTransitioningDelegate {}
 
 // MARK: - Modifier state
 
